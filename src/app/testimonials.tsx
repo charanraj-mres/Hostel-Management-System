@@ -15,7 +15,7 @@ const TESTIMONIALS = [
   },
   {
     feedback:
-      "The hostel's community feel is what I love most. From quiet study spaces to weekend activities, everything is well-balanced. The mess food is surprisingly good too!",
+      "The hostel&#34;s community feel is what I love most. From quiet study spaces to weekend activities, everything is well-balanced. The mess food is surprisingly good too!",
     student: "Priya Patel",
     course: "M.Sc Physics",
     year: "2nd Year",

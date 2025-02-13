@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Typography } from "@material-tailwind/react";
-
+import Image from "next/image";
 const HOSTELS = [
   {
     name: "Jagannath Hostel",
@@ -32,9 +32,11 @@ function HostelCard({ name, price, image, description, features }) {
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="relative h-72 overflow-hidden">
-        <img
+        <Image
           src={image}
           alt={name}
+          width={600}
+          height={400}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
