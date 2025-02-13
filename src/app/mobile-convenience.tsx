@@ -114,7 +114,7 @@ export function HostelStats() {
           <Image
             width={600}
             height={800}
-            src="/api/placeholder/600/800"
+            src="/images/hostel_img/hostel_img_9.jpg"
             alt="Modern Hostel Building"
             className="rounded-xl shadow-xl"
           />

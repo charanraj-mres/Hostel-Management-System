@@ -7,14 +7,14 @@ const HOSTELS = [
   {
     name: "Jagannath Hostel",
     price: "1800",
-    image: "/api/placeholder/600/400",
+    image: "/images/hostels/hostel1.jpg",
     description: "Luxury accommodation with modern amenities and 24/7 security",
     features: ["AC Rooms", "WiFi", "Study Area", "Garden View"],
   },
   {
     name: "Lalitgiri Hostel",
     price: "1700",
-    image: "/api/placeholder/600/400",
+    image: "/images/hostels/hostel2.gif",
     description:
       "Peaceful environment with well-maintained garden and facilities",
     features: ["Spacious Rooms", "Garden", "Common Area", "Sports Facility"],
@@ -22,7 +22,7 @@ const HOSTELS = [
   {
     name: "Dharmapada Hostel",
     price: "1700",
-    image: "/api/placeholder/600/400",
+    image: "/images/hostels/hostel3.jpg",
     description: "Comfortable stay with all essential amenities for students",
     features: ["Clean Rooms", "Security", "Mess Facility", "Study Hall"],
   },

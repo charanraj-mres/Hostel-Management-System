@@ -5,20 +5,40 @@ import Image from "next/image";
 
 const carouselImages = [
   {
-    src: "/api/placeholder/470/576",
+    src: "/images/hostel_img/hostel_img_1.jpg",
     alt: "Hostel Modern Rooms",
   },
   {
-    src: "/api/placeholder/470/576",
+    src: "/images/hostel_img/hostel_img_2.jpg",
     alt: "Student Common Area",
   },
   {
-    src: "/api/placeholder/470/576",
+    src: "/images/hostel_img/hostel_img_3.jpg",
     alt: "Dining Facilities",
   },
   {
-    src: "/api/placeholder/470/576",
+    src: "/images/hostel_img/hostel_img_4.jpg",
     alt: "Study Space",
+  },
+  {
+    src: "/images/hostel_img/hostel_img_5.jpg",
+    alt: "Hostel Garden",
+  },
+  {
+    src: "/images/hostel_img/hostel_img_6.jpg",
+    alt: "Hostel Reception",
+  },
+  {
+    src: "/images/hostel_img/hostel_img_7.jpg",
+    alt: "Hostel Modern Rooms",
+  },
+  {
+    src: "/images/hostel_img/hostel_img_8.jpg",
+    alt: "Student Common Area",
+  },
+  {
+    src: "/images/hostel_img/hostel_img_9.jpg",
+    alt: "Dining Facilities",
   },
 ];
 
