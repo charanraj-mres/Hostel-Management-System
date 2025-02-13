@@ -56,7 +56,17 @@ const FEATURES = [
   },
 ];
 
-function FeatureCard({ icon: Icon, title, description, color }) {
+function FeatureCard({
+  icon: Icon,
+  title,
+  description,
+  color,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  color: string;
+}) {
   const colorMap = {
     blue: "bg-blue-50 text-blue-500",
     green: "bg-green-50 text-green-500",
