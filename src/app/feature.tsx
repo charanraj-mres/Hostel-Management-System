@@ -65,7 +65,12 @@ function FeatureCard({ icon: Icon, title, description, color }) {
     teal: "bg-teal-50 text-teal-500",
     red: "bg-red-50 text-red-500",
   };
-
+  interface FeatureCardProps {
+    icon: React.ElementType;
+    title: string;
+    description: string;
+    color: keyof typeof colorMap;
+  }
   return (
     <div className="group relative flex flex-col rounded-2xl border border-gray-100 bg-white p-8 shadow-lg hover:shadow-xl transition-all duration-300">
       <div className={`mb-6 rounded-xl p-4 w-16 h-16 ${colorMap[color]}`}>
