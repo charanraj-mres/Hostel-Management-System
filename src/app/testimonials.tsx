@@ -66,7 +66,7 @@ function TestimonialCard({ feedback, student, course, year, rating }) {
 
       {/* Testimonial Content */}
       <Typography className="mb-6 font-normal text-gray-600">
-        "{feedback}"
+        &ldquo;{feedback}&rdquo;
       </Typography>
 
       {/* Student Info */}
