@@ -1,64 +1,58 @@
 "use client";
 
 import React from "react";
-import { Typography, Card } from "@material-tailwind/react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const FAQS = [
   {
-    title: "How do I get started?",
-    desc: "Getting started is easy! Simply [Provide a brief overview of the initial steps or link to a detailed guide].",
+    title: "How do I book a hostel room?",
+    desc: "Booking a room is simple! Visit our booking section, select your preferred room type, choose your check-in and check-out dates, and complete the payment process. You'll receive a confirmation email with your booking details.",
   },
   {
-    title: "Is there a free trial available?",
-    desc: "Yes, we offer a 30 days free trial so you can experience our mobile application with no commitment.",
+    title: "What are the check-in and check-out times?",
+    desc: "Standard check-in time is 2:00 PM and check-out time is 11:00 AM. Early check-in or late check-out may be available upon request, subject to availability and additional charges.",
   },
   {
-    title: "How can I upgrade my account?",
-    desc: "To upgrade your account, log in and navigate to the [Upgrade Account] section in your dashboard. Follow the prompts to select your preferred plan.",
+    title: "What amenities are included in the room rate?",
+    desc: "Our room rates include free Wi-Fi, bed linens, shared kitchen access, common room facilities, and lockers. Additional services like laundry and breakfast may be available for an extra charge.",
   },
   {
-    title: "Can I cancel my subscription anytime?",
-    desc: "Absolutely, you can cancel your subscription at any time with no questions asked. Your subscription will remain active until the end of the current billing cycle.",
+    title: "How can I modify or cancel my reservation?",
+    desc: "You can modify or cancel your reservation through your account dashboard up to 48 hours before check-in. Different cancellation policies may apply based on your room type and booking conditions.",
   },
   {
-    title: "How can I upgrade my account to paid?",
-    desc: "To upgrade your account, log in and navigate to the [Upgrade Account] section in your dashboard. Follow the prompts to select your preferred plan.",
+    title: "What payment methods do you accept?",
+    desc: "We accept major credit cards (Visa, MasterCard, American Express), debit cards, and online payment services. Payment must be made in advance to secure your booking.",
   },
   {
-    title: "What if I need help or have technical issues?",
-    desc: "Our dedicated support team is here to assist you. Reach out via [mention preferred support channels, e.g., live chat, email, or phone], and we'll get back to you promptly.",
+    title: "Is there a security deposit required?",
+    desc: "Yes, we require a refundable security deposit at check-in. The amount varies depending on your room type and length of stay. The deposit will be returned upon check-out after room inspection.",
   },
 ];
 
 export function Faqs() {
   return (
-    <section className="px-8 py-20">
-      <div className="container max-w-6xl mx-auto">
-        <div className="text-center">
-          <Typography variant="h1" color="blue-gray" className="mb-4">
-            Frequently asked questions
-          </Typography>
-          <Typography
-            variant="lead"
-            className="mx-auto mb-24 !text-gray-500 lg:w-3/5"
-          >
-            A lot of people don&apos;t appreciate the moment until it&apos;s
-            passed. I&apos;m not trying my hardest, and I&apos;m not trying to
-            do
-          </Typography>
+    <section className="w-full py-12 md:py-20">
+      <div className="container px-4 md:px-6 max-w-6xl mx-auto">
+        <div className="text-center space-y-4 mb-12">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Frequently Asked Questions
+          </h2>
+          <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+            Everything you need to know about our hostel booking and management
+            system
+          </p>
         </div>
 
-        <div className="grid gap-20 md:grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {FAQS.map(({ title, desc }) => (
-            <Card key={title} shadow={false} color="transparent">
-              <Typography color="blue-gray" className="pb-6" variant="h4">
-                {title}
-              </Typography>
-              <div className="pt-2">
-                <Typography className="font-normal !text-gray-500">
-                  {desc}
-                </Typography>
-              </div>
+            <Card key={title} className="border-none shadow-md">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500">{desc}</p>
+              </CardContent>
             </Card>
           ))}
         </div>

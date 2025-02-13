@@ -1,5 +1,5 @@
 // components
-import { Navbar, Footer } from "@/components";
+import { Navbar, Footer, HostelShowcase } from "@/components";
 
 // sections
 import Hero from "./hero";
@@ -15,7 +15,9 @@ export default function Campaign() {
       <Navbar />
       <Hero />
       <VideoIntro />
+
       <Feature />
+      <HostelShowcase />
       <MobileConvenience />
       <Testimonials />
       <Faqs />
