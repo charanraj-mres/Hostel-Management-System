@@ -11,7 +11,12 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
-const FEATURES = [
+const FEATURES: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  color: "teal" | "red" | "blue" | "green" | "purple" | "orange";
+}[] = [
   {
     icon: HomeIcon,
     title: "Modern Accommodations",
@@ -65,7 +70,7 @@ function FeatureCard({
   icon: React.ElementType;
   title: string;
   description: string;
-  color: string;
+  color: keyof typeof colorMap;
 }) {
   const colorMap = {
     blue: "bg-blue-50 text-blue-500",
@@ -86,10 +91,22 @@ function FeatureCard({
       <div className={`mb-6 rounded-xl p-4 w-16 h-16 ${colorMap[color]}`}>
         <Icon className="h-8 w-8" />
       </div>
-      <Typography variant="h5" color="blue-gray" className="mb-3">
+      <Typography
+        variant="h5"
+        color="blue-gray"
+        className="mb-3"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
+      >
         {title}
       </Typography>
-      <Typography className="font-normal !text-gray-500">
+      <Typography
+        className="font-normal !text-gray-500"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
+      >
         {description}
       </Typography>
       <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-blue-500 to-purple-500 group-hover:w-full transition-all duration-300"></div>
@@ -105,15 +122,28 @@ export function Features() {
           variant="small"
           color="blue"
           className="mb-2 font-bold uppercase tracking-wider"
+          placeholder={undefined}
+          onPointerEnterCapture={undefined}
+          onPointerLeaveCapture={undefined}
         >
           Why Choose Our Hostel
         </Typography>
-        <Typography variant="h2" color="blue-gray" className="mb-4">
+        <Typography
+          variant="h2"
+          color="blue-gray"
+          className="mb-4"
+          placeholder={undefined}
+          onPointerEnterCapture={undefined}
+          onPointerLeaveCapture={undefined}
+        >
           Premium Facilities & Services
         </Typography>
         <Typography
           variant="lead"
           className="mx-auto w-full px-4 !text-gray-500 lg:w-3/5"
+          placeholder={undefined}
+          onPointerEnterCapture={undefined}
+          onPointerLeaveCapture={undefined}
         >
           Experience comfortable living with our state-of-the-art facilities and
           comprehensive services designed to make your stay memorable and

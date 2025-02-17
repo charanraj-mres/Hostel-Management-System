@@ -87,7 +87,13 @@ const STATISTICS = [
   },
 ];
 
-function StatCard({ title, description, icon }) {
+type StatcardProps = {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+};
+
+function StatCard({ title, description, icon }: StatcardProps) {
   return (
     <div className="group rounded-xl border border-gray-100 bg-white p-8 shadow-lg transition-all hover:shadow-xl">
       <div className="mb-4 inline-block rounded-lg bg-blue-50 p-4 text-blue-500">
@@ -96,10 +102,18 @@ function StatCard({ title, description, icon }) {
       <Typography
         variant="h3"
         className="mb-2 text-3xl font-bold text-blue-gray-900"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
       >
         {title}
       </Typography>
-      <Typography className="font-normal text-gray-600">
+      <Typography
+        className="font-normal text-gray-600"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
+      >
         {description}
       </Typography>
     </div>
@@ -121,10 +135,23 @@ export function HostelStats() {
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-[2px]"></div>
         </div>
         <div className="col-span-1 mx-auto max-w-lg px-4 lg:px-0">
-          <Typography variant="h2" color="blue-gray" className="mb-4">
+          <Typography
+            variant="h2"
+            color="blue-gray"
+            className="mb-4"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             Why Choose Our Hostels?
           </Typography>
-          <Typography variant="lead" className="mb-8 text-gray-600">
+          <Typography
+            variant="lead"
+            className="mb-8 text-gray-600"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             Experience comfortable living with our state-of-the-art facilities
             and comprehensive services. We provide a safe and nurturing
             environment for students to thrive in their academic journey.

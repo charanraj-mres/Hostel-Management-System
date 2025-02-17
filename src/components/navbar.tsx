@@ -24,6 +24,9 @@ function NavItem({ children, href }: NavItemProps) {
         target={href ? "_blank" : "_self"}
         variant="small"
         className="font-medium hover:text-blue-500 transition-colors"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
       >
         {children}
       </Typography>
@@ -66,6 +69,9 @@ export function Navbar() {
       blurred={false}
       color={isScrolling ? "white" : "transparent"}
       className="fixed top-0 z-50 border-0"
+      placeholder={undefined}
+      onPointerEnterCapture={undefined}
+      onPointerLeaveCapture={undefined}
     >
       <div className="container mx-auto flex items-center justify-between">
         <Typography
@@ -74,6 +80,9 @@ export function Navbar() {
           variant="h6"
           color={isScrolling ? "blue-gray" : "white"}
           className="flex items-center gap-2"
+          placeholder={undefined}
+          onPointerEnterCapture={undefined}
+          onPointerLeaveCapture={undefined}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -107,6 +116,9 @@ export function Navbar() {
             variant="text"
             color={isScrolling ? "blue-gray" : "white"}
             className="flex items-center gap-1"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -128,6 +140,9 @@ export function Navbar() {
             color={isScrolling ? "blue-gray" : "white"}
             size="sm"
             className="hidden lg:inline-block"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
           >
             <span>Book Now</span>
           </Button>
@@ -137,6 +152,9 @@ export function Navbar() {
           color={isScrolling ? "blue-gray" : "white"}
           onClick={handleOpen}
           className="ml-auto inline-block lg:hidden"
+          placeholder={undefined}
+          onPointerEnterCapture={undefined}
+          onPointerLeaveCapture={undefined}
         >
           {open ? (
             <XMarkIcon strokeWidth={2} className="h-6 w-6" />
@@ -155,7 +173,14 @@ export function Navbar() {
             <NavItem>Complaints</NavItem>
           </ul>
           <div className="mt-4 flex flex-col gap-2">
-            <Button variant="text" color="blue-gray" fullWidth>
+            <Button
+              variant="text"
+              color="blue-gray"
+              fullWidth
+              placeholder={undefined}
+              onPointerEnterCapture={undefined}
+              onPointerLeaveCapture={undefined}
+            >
               <span className="flex items-center gap-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -174,7 +199,13 @@ export function Navbar() {
                 Login
               </span>
             </Button>
-            <Button color="blue-gray" fullWidth>
+            <Button
+              color="blue-gray"
+              fullWidth
+              placeholder={undefined}
+              onPointerEnterCapture={undefined}
+              onPointerLeaveCapture={undefined}
+            >
               Book Now
             </Button>
           </div>

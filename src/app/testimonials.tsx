@@ -31,7 +31,21 @@ const TESTIMONIALS = [
   },
 ];
 
-function TestimonialCard({ feedback, student, course, year, rating }) {
+type TestimonialCardProps = {
+  feedback: string;
+  student: string;
+  course: string;
+  year: string;
+  rating: number;
+};
+
+function TestimonialCard({
+  feedback,
+  student,
+  course,
+  year,
+  rating,
+}: TestimonialCardProps) {
   return (
     <div className="relative rounded-xl bg-white p-8 shadow-lg hover:shadow-xl transition-shadow">
       {/* Quote Icon */}
@@ -65,7 +79,12 @@ function TestimonialCard({ feedback, student, course, year, rating }) {
       </div>
 
       {/* Testimonial Content */}
-      <Typography className="mb-6 font-normal text-gray-600">
+      <Typography
+        className="mb-6 font-normal text-gray-600"
+        placeholder={undefined}
+        onPointerEnterCapture={undefined}
+        onPointerLeaveCapture={undefined}
+      >
         &ldquo;{feedback}&rdquo;
       </Typography>
 
@@ -75,10 +94,22 @@ function TestimonialCard({ feedback, student, course, year, rating }) {
           {student[0]}
         </div>
         <div>
-          <Typography variant="h6" color="blue-gray" className="mb-1">
+          <Typography
+            variant="h6"
+            color="blue-gray"
+            className="mb-1"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             {student}
           </Typography>
-          <Typography className="text-sm text-gray-500">
+          <Typography
+            className="text-sm text-gray-500"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             {course} • {year}
           </Typography>
         </div>
@@ -95,12 +126,22 @@ export function Testimonials() {
           <div className="mb-10 flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white">
             <ChatBubbleBottomCenterTextIcon className="h-6 w-6" />
           </div>
-          <Typography variant="h2" color="blue-gray" className="mb-2">
+          <Typography
+            variant="h2"
+            color="blue-gray"
+            className="mb-2"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             Student Experiences
           </Typography>
           <Typography
             variant="lead"
             className="mb-10 max-w-3xl text-center text-gray-600"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
           >
             Hear directly from our residents about their experiences living in
             our hostels. Their stories reflect our commitment to providing a
