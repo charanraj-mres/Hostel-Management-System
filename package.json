@@ -12,7 +12,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@heroicons/react": "^2.0.18",
+    "@heroicons/react": "^2.2.0",
     "@heroui/input": "^2.4.10",
     "@heroui/system": "^2.4.7",
     "@heroui/theme": "^2.4.6",
@@ -26,7 +26,9 @@
     "next": "^13.5.8",
     "react": "18",
     "react-dom": "18",
+    "react-firebase-hooks": "^5.1.1",
     "react-hot-toast": "^2.5.2",
+    "react-toastify": "^11.0.3",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7"
   },

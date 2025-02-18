@@ -7,8 +7,21 @@ import {
   IconButton,
   Typography,
   Button,
+  Menu,
+  MenuHandler,
+  MenuList,
+  MenuItem,
 } from "@material-tailwind/react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  Bars3Icon,
+  XMarkIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
+import { auth } from "@/config/firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface NavItemProps {
   children: React.ReactNode;
@@ -37,10 +50,22 @@ function NavItem({ children, href }: NavItemProps) {
 export function Navbar() {
   const [open, setOpen] = React.useState(false);
   const [isScrolling, setIsScrolling] = React.useState(false);
+  const [user] = useAuthState(auth);
+  const router = useRouter();
 
   function handleOpen() {
     setOpen((cur) => !cur);
   }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast.success("Logged out successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error("Error logging out");
+    }
+  };
 
   React.useEffect(() => {
     window.addEventListener(
@@ -105,47 +130,76 @@ export function Navbar() {
             isScrolling ? "text-gray-900" : "text-white"
           }`}
         >
-          <NavItem>Dashboard</NavItem>
-          <NavItem>Rooms</NavItem>
-          <NavItem>Students</NavItem>
-          <NavItem>Mess</NavItem>
-          <NavItem>Complaints</NavItem>
+          <NavItem href="/dashboard">Dashboard</NavItem>
+          <NavItem href="/rooms">Rooms</NavItem>
+          <NavItem href="/students">Students</NavItem>
+          <NavItem href="/mess">Mess</NavItem>
+          <NavItem href="/complaints">Complaints</NavItem>
         </ul>
         <div className="hidden gap-2 lg:flex lg:items-center">
-          <Button
-            variant="text"
-            color={isScrolling ? "blue-gray" : "white"}
-            className="flex items-center gap-1"
-            placeholder={undefined}
-            onPointerEnterCapture={undefined}
-            onPointerLeaveCapture={undefined}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-4 h-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-              />
-            </svg>
-            Login
-          </Button>
-          <Button
-            color={isScrolling ? "blue-gray" : "white"}
-            size="sm"
-            className="hidden lg:inline-block"
-            placeholder={undefined}
-            onPointerEnterCapture={undefined}
-            onPointerLeaveCapture={undefined}
-          >
-            <span>Book Now</span>
-          </Button>
+          {user ? (
+            <Menu>
+              <MenuHandler>
+                <Button
+                  variant="text"
+                  color={isScrolling ? "blue-gray" : "white"}
+                  className="flex items-center gap-1"
+                  placeholder={undefined}
+                  onPointerEnterCapture={undefined}
+                  onPointerLeaveCapture={undefined}
+                >
+                  <UserCircleIcon className="h-5 w-5" />
+                  Profile
+                </Button>
+              </MenuHandler>
+              <MenuList
+                placeholder={undefined}
+                onPointerEnterCapture={undefined}
+                onPointerLeaveCapture={undefined}
+              >
+                <MenuItem
+                  onClick={() => router.push("/profile")}
+                  placeholder={undefined}
+                  onPointerEnterCapture={undefined}
+                  onPointerLeaveCapture={undefined}
+                >
+                  My Profile
+                </MenuItem>
+                <MenuItem
+                  onClick={handleLogout}
+                  placeholder={undefined}
+                  onPointerEnterCapture={undefined}
+                  onPointerLeaveCapture={undefined}
+                >
+                  Logout
+                </MenuItem>
+              </MenuList>
+            </Menu>
+          ) : (
+            <>
+              <Button
+                variant="text"
+                color={isScrolling ? "blue-gray" : "white"}
+                className="flex items-center gap-1"
+                onClick={() => router.push("/login")}
+                placeholder={undefined}
+                onPointerEnterCapture={undefined}
+                onPointerLeaveCapture={undefined}
+              >
+                Login
+              </Button>
+              <Button
+                color={isScrolling ? "blue-gray" : "white"}
+                size="sm"
+                onClick={() => router.push("/register")}
+                placeholder={undefined}
+                onPointerEnterCapture={undefined}
+                onPointerLeaveCapture={undefined}
+              >
+                Register
+              </Button>
+            </>
+          )}
         </div>
         <IconButton
           variant="text"
@@ -166,48 +220,50 @@ export function Navbar() {
       <Collapse open={open}>
         <div className="container mx-auto mt-4 rounded-lg border-t border-blue-gray-50 bg-white px-6 py-5">
           <ul className="flex flex-col gap-4 text-blue-gray-900">
-            <NavItem>Dashboard</NavItem>
-            <NavItem>Rooms</NavItem>
-            <NavItem>Students</NavItem>
-            <NavItem>Mess</NavItem>
-            <NavItem>Complaints</NavItem>
+            <NavItem href="/dashboard">Dashboard</NavItem>
+            <NavItem href="/rooms">Rooms</NavItem>
+            <NavItem href="/students">Students</NavItem>
+            <NavItem href="/mess">Mess</NavItem>
+            <NavItem href="/complaints">Complaints</NavItem>
           </ul>
           <div className="mt-4 flex flex-col gap-2">
-            <Button
-              variant="text"
-              color="blue-gray"
-              fullWidth
-              placeholder={undefined}
-              onPointerEnterCapture={undefined}
-              onPointerLeaveCapture={undefined}
-            >
-              <span className="flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-4 h-4"
+            {user ? (
+              <Button
+                variant="text"
+                color="blue-gray"
+                fullWidth
+                onClick={handleLogout}
+                placeholder={undefined}
+                onPointerEnterCapture={undefined}
+                onPointerLeaveCapture={undefined}
+              >
+                Logout
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="text"
+                  color="blue-gray"
+                  fullWidth
+                  onClick={() => router.push("/login")}
+                  placeholder={undefined}
+                  onPointerEnterCapture={undefined}
+                  onPointerLeaveCapture={undefined}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                  />
-                </svg>
-                Login
-              </span>
-            </Button>
-            <Button
-              color="blue-gray"
-              fullWidth
-              placeholder={undefined}
-              onPointerEnterCapture={undefined}
-              onPointerLeaveCapture={undefined}
-            >
-              Book Now
-            </Button>
+                  Login
+                </Button>
+                <Button
+                  color="blue-gray"
+                  fullWidth
+                  onClick={() => router.push("/register")}
+                  placeholder={undefined}
+                  onPointerEnterCapture={undefined}
+                  onPointerLeaveCapture={undefined}
+                >
+                  Register
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </Collapse>
