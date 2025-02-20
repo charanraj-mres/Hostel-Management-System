@@ -4,7 +4,7 @@
 /node_modules
 /.pnp
 .pnp.js
-/ServiceAccountKey.json
+
 # testing
 /coverage
 
@@ -33,7 +33,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
+ServiceAccountKey.json
 package-lock.json
 pnpm-lock.yaml
 yarn.lock

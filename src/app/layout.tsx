@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import { Layout } from "@/components";
 import { Providers } from "./providers";
+import AppWrappers from "./AppWrappers";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -35,8 +36,10 @@ export default function RootLayout({
       </head>
       <body className={roboto.className}>
         <Layout>
-          <Providers>{children}</Providers>
-          {/* <FixedPlugin /> */}
+          <AppWrappers>
+            <Providers>{children}</Providers>
+            {/* <FixedPlugin /> */}
+          </AppWrappers>
         </Layout>
       </body>
     </html>
