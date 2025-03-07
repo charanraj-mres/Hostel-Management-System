@@ -61,7 +61,7 @@ function Hero() {
             <div className="relative inline-block">
               <div className="absolute -left-4 top-0 h-20 w-2 bg-orange-400"></div>
               <h1 className="text-4xl font-bold text-white mb-4 md:text-5xl lg:text-6xl">
-                Smart Hostel <br /> Management System
+                Hostel Management System <br /> for St Agnes college
               </h1>
             </div>
             <p className="text-xl text-white/90 mb-7 md:pr-16 xl:pr-28">

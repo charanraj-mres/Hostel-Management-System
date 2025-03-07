@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 
 const videoIds = [
-  "nAkO1JoYt5Y",
-  "XaSQtr_qsfs", // Example video IDs, replace with yours
-  "cclVbGoF0dY",
-  "hMP-g8bQGw",
+  "aWmjaRbkGww",
+  "Nut2rshzNNs", // Example video IDs, replace with yours
+  "OYXRJS2J1J4",
+  "nvZ6T2uv5Ns",
 ];
 
 export function VideoIntro() {
