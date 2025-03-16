@@ -17,7 +17,7 @@ import {
   sendEmailVerification,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/config/firebase";
+import { auth, db } from "config/firebase";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {

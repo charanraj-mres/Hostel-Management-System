@@ -17,7 +17,7 @@ import {
   XMarkIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
-import { auth } from "@/config/firebase";
+import { auth } from "config/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";

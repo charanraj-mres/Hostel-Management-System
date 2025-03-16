@@ -1,67 +1,77 @@
-import { Icon } from '@chakra-ui/react';
+import { Icon } from "@chakra-ui/react";
 import {
   MdBarChart,
   MdPerson,
   MdHome,
   MdLock,
   MdOutlineShoppingCart,
-} from 'react-icons/md';
+} from "react-icons/md";
 
-// Admin Imports
-// import MainDashboard from './pages/admin/default';
-// import NFTMarketplace from './pages/admin/nft-marketplace';
-// import Profile from './pages/admin/profile';
-// import DataTables from './pages/admin/data-tables';
-// import RTL from './pages/rtl/rtl-default';
-
-// Auth Imports
-// import SignInCentered from './pages/auth/sign-in';
-import { IRoute } from 'types/navigation';
+import { IRoute } from "types/navigation";
 
 const routes: IRoute[] = [
+  // all
   {
-    name: 'Main Dashboard',
-    layout: '/admin',
-    path: '/default',
+    name: "Main Dashboard",
+    layout: "/admin",
+    path: "/default",
     icon: <Icon as={MdHome} width="20px" height="20px" color="inherit" />,
   },
+  // userType: "warden",
   {
-    name: 'NFT Marketplace',
-    layout: '/admin',
-    path: '/nft-marketplace',
-    icon: (
-      <Icon
-        as={MdOutlineShoppingCart}
-        width="20px"
-        height="20px"
-        color="inherit"
-      />
-    ),
-    secondary: true,
-  },
-  {
-    name: 'Data Tables',
-    layout: '/admin',
-    icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
-    path: '/data-tables',
-  },
-  {
-    name: 'Profile',
-    layout: '/admin',
-    path: '/profile',
+    name: "All users",
+    layout: "/admin",
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/allusers",
+    userType: "warden",
   },
+  // userType: "staff",
   {
-    name: 'Sign In',
-    layout: '/auth',
-    path: '/sign-in',
-    icon: <Icon as={MdLock} width="20px" height="20px" color="inherit" />,
+    name: "Add parents",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/addparents",
+    userType: "staff",
   },
+  // userType: "warden",
   {
-    name: 'RTL Admin',
-    layout: '/rtl',
-    path: '/rtl-default',
-    icon: <Icon as={MdHome} width="20px" height="20px" color="inherit" />,
+    name: "Add Staff",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/addstaff",
+    userType: "warden",
+  },
+  // userType: "warden",
+  {
+    name: "Add Students",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/addstudents",
+    userType: "warden",
+  },
+  // userType: "warden",
+  {
+    name: "Admission",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/admission",
+    userType: "warden",
+  },
+  // userType: "staff, student",
+  {
+    name: "Attendance",
+    layout: "/admin",
+    path: "/attendance",
+    icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
+    userType: "staff, student",
+  },
+  // userType: "parents",
+  {
+    name: "Check Attendance",
+    layout: "/admin",
+    path: "/check-attendance",
+    icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
+    userType: "parents",
   },
 ];
 

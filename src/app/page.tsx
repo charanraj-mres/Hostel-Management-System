@@ -1,5 +1,5 @@
 // components
-import { Navbar, Footer, HostelShowcase } from "@/components";
+import { Navbar, Footer, HostelShowcase } from "components";
 
 // sections
 import Hero from "./hero";

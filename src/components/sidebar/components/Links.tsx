@@ -1,11 +1,13 @@
 /* eslint-disable */
 
 // chakra imports
-import { Box, Flex, HStack, Text, useColorModeValue } from '@chakra-ui/react';
-import Link from 'next/link';
-import { IRoute } from 'types/navigation';
-import { usePathname } from 'next/navigation';
-import { useCallback } from 'react';
+import { Box, Flex, HStack, Text, useColorModeValue } from "@chakra-ui/react";
+import Link from "next/link";
+import { IRoute } from "types/navigation";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { auth, db } from "config/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 interface SidebarLinksProps {
   routes: IRoute[];
@@ -13,34 +15,75 @@ interface SidebarLinksProps {
 
 export function SidebarLinks(props: SidebarLinksProps) {
   const { routes } = props;
+  const [userType, setUserType] = useState<string>("");
+  const [filteredRoutes, setFilteredRoutes] = useState<IRoute[]>([]);
 
-  //   Chakra color mode
+  // Chakra color mode
   const pathname = usePathname();
 
-  let activeColor = useColorModeValue('gray.700', 'white');
+  let activeColor = useColorModeValue("gray.700", "white");
   let inactiveColor = useColorModeValue(
-    'secondaryGray.600',
-    'secondaryGray.600',
+    "secondaryGray.600",
+    "secondaryGray.600"
   );
-  let activeIcon = useColorModeValue('brand.500', 'white');
-  let textColor = useColorModeValue('secondaryGray.500', 'white');
-  let brandColor = useColorModeValue('brand.500', 'brand.400');
+  let activeIcon = useColorModeValue("brand.500", "white");
+  let textColor = useColorModeValue("secondaryGray.500", "white");
+  let brandColor = useColorModeValue("brand.500", "brand.400");
+
+  // Fetch user type from Firestore
+  useEffect(() => {
+    const getUserType = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserType(userData.userType || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user type:", error);
+      }
+    };
+
+    getUserType();
+  }, []);
+
+  // Filter routes based on user type
+  useEffect(() => {
+    if (!userType) {
+      setFilteredRoutes(routes.filter((route) => !route.userType)); // Only routes with no userType specified
+      return;
+    }
+
+    const filtered = routes.filter((route) => {
+      // If no userType is specified, show to all users
+      if (!route.userType) return true;
+
+      // Check if user type is in the comma-separated list
+      const allowedTypes = route.userType.split(",").map((type) => type.trim());
+      return allowedTypes.includes(userType);
+    });
+
+    setFilteredRoutes(filtered);
+  }, [routes, userType]);
 
   // verifies if routeName is the one active (in browser input)
   const activeRoute = useCallback(
     (routeName: string) => {
       return pathname?.includes(routeName);
     },
-    [pathname],
+    [pathname]
   );
 
   // this function creates the links from the secondary accordions (for example auth -> sign-in -> default)
   const createLinks = (routes: IRoute[]) => {
     return routes.map((route, index: number) => {
       if (
-        route.layout === '/admin' ||
-        route.layout === '/auth' ||
-        route.layout === '/rtl'
+        route.layout === "/admin" ||
+        route.layout === "/auth" ||
+        route.layout === "/rtl"
       ) {
         return (
           <Link key={index} href={route.layout + route.path}>
@@ -48,7 +91,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
               <Box>
                 <HStack
                   spacing={
-                    activeRoute(route.path.toLowerCase()) ? '22px' : '26px'
+                    activeRoute(route.path.toLowerCase()) ? "22px" : "26px"
                   }
                   py="5px"
                   ps="10px"
@@ -73,8 +116,8 @@ export function SidebarLinks(props: SidebarLinksProps) {
                       }
                       fontWeight={
                         activeRoute(route.path.toLowerCase())
-                          ? 'bold'
-                          : 'normal'
+                          ? "bold"
+                          : "normal"
                       }
                     >
                       {route.name}
@@ -86,7 +129,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                     bg={
                       activeRoute(route.path.toLowerCase())
                         ? brandColor
-                        : 'transparent'
+                        : "transparent"
                     }
                     borderRadius="5px"
                   />
@@ -96,7 +139,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
               <Box>
                 <HStack
                   spacing={
-                    activeRoute(route.path.toLowerCase()) ? '22px' : '26px'
+                    activeRoute(route.path.toLowerCase()) ? "22px" : "26px"
                   }
                   py="5px"
                   ps="10px"
@@ -109,7 +152,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                         : inactiveColor
                     }
                     fontWeight={
-                      activeRoute(route.path.toLowerCase()) ? 'bold' : 'normal'
+                      activeRoute(route.path.toLowerCase()) ? "bold" : "normal"
                     }
                   >
                     {route.name}
@@ -124,7 +167,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
     });
   };
   //  BRAND
-  return <>{createLinks(routes)}</>;
+  return <>{createLinks(filteredRoutes)}</>;
 }
 
 export default SidebarLinks;

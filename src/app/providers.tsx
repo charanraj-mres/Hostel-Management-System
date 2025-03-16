@@ -2,7 +2,7 @@
 
 import { NextUIProvider } from "@nextui-org/react";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "context/AuthContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
