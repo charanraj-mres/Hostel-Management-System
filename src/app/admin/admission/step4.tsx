@@ -1,3 +1,4 @@
+import React from "react";
 import {
   VStack,
   Heading,
@@ -5,12 +6,24 @@ import {
   FormLabel,
   Input,
   FormErrorMessage,
+  Text,
+  FormHelperText,
 } from "@chakra-ui/react";
 
 interface Step4Props {
-  formData: any;
+  formData: {
+    documents: {
+      aadharCard: File | null;
+      photo: File | null;
+      addressProof: File | null;
+    };
+  };
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  errors: { [key: string]: any };
+  errors: {
+    "documents.aadharCard"?: string;
+    "documents.photo"?: string;
+    "documents.addressProof"?: string;
+  };
 }
 
 const Step4: React.FC<Step4Props> = ({
@@ -24,6 +37,11 @@ const Step4: React.FC<Step4Props> = ({
         Document Upload
       </Heading>
 
+      <Text mb={2}>
+        Please upload the following documents for verification. All documents
+        should be clear and readable.
+      </Text>
+
       <FormControl isInvalid={!!errors["documents.aadharCard"]}>
         <FormLabel>Aadhar Card</FormLabel>
         <Input
@@ -32,17 +50,23 @@ const Step4: React.FC<Step4Props> = ({
           onChange={handleFileChange}
           accept="image/jpeg,image/png,application/pdf"
         />
+        <FormHelperText>
+          Upload a scanned copy of your Aadhar card (JPG, PNG, or PDF)
+        </FormHelperText>
         <FormErrorMessage>{errors["documents.aadharCard"]}</FormErrorMessage>
       </FormControl>
 
       <FormControl isInvalid={!!errors["documents.photo"]}>
-        <FormLabel>Photo</FormLabel>
+        <FormLabel>Recent Passport Size Photo</FormLabel>
         <Input
           type="file"
           name="photo"
           onChange={handleFileChange}
           accept="image/jpeg,image/png"
         />
+        <FormHelperText>
+          Upload a recent passport size photo (JPG or PNG)
+        </FormHelperText>
         <FormErrorMessage>{errors["documents.photo"]}</FormErrorMessage>
       </FormControl>
 
@@ -54,9 +78,14 @@ const Step4: React.FC<Step4Props> = ({
           onChange={handleFileChange}
           accept="image/jpeg,image/png,application/pdf"
         />
+        <FormHelperText>
+          Upload a document as proof of address (Utility bill, Passport, etc. in
+          JPG, PNG, or PDF)
+        </FormHelperText>
         <FormErrorMessage>{errors["documents.addressProof"]}</FormErrorMessage>
       </FormControl>
     </VStack>
   );
 };
+
 export default Step4;

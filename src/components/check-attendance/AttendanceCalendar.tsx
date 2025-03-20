@@ -9,7 +9,7 @@ interface AttendanceLog {
 }
 
 interface AttendanceCalendarProps {
-  logs: AttendanceLog[];
+  attendanceLogs: AttendanceLog[];
   month: number;
   year: number;
   onDayClick: (date: Date) => void;
@@ -25,7 +25,7 @@ type AttendanceStatus =
   | "";
 
 const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
-  logs,
+  attendanceLogs,
   month,
   year,
   onDayClick,
@@ -39,7 +39,7 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   ];
 
   const getStatusForDay = (day: number): AttendanceStatus => {
-    const dayLogs = logs.filter((log) => {
+    const dayLogs = attendanceLogs.filter((log) => {
       const logDate = new Date(log.timestamp.seconds * 1000);
       return (
         logDate.getFullYear() === year &&

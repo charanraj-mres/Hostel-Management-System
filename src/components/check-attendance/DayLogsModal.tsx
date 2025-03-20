@@ -26,14 +26,27 @@ interface DayLog {
   notes?: string;
 }
 
+interface AttendanceLog {
+  timestamp: { seconds: number }; // Firebase Timestamp format
+  status: "Punched In" | "Punched Out";
+  isLate?: boolean;
+  regularized?: boolean;
+  notes?: string;
+}
+
 interface DayLogsModalProps {
   isOpen: boolean;
+  date: Date | null;
   onClose: () => void;
   dayLogs: DayLog[];
+  logs: AttendanceLog[];
+  studentName: string;
 }
 
 const DayLogsModal: React.FC<DayLogsModalProps> = ({
   isOpen,
+  date,
+  logs,
   onClose,
   dayLogs,
 }) => {

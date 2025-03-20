@@ -1,3 +1,4 @@
+import React from "react";
 import {
   VStack,
   Heading,
@@ -6,29 +7,49 @@ import {
   Textarea,
   FormErrorMessage,
   Input,
+  Select,
 } from "@chakra-ui/react";
+
+interface Guardian {
+  id: string;
+  name: string;
+  contactNumber: string;
+  relation: string;
+}
 
 interface Step2Props {
   formData: {
     permanentAddress: string;
     currentAddress: string;
+    guardianId: string;
     guardianName: string;
     guardianContact: string;
     guardianRelation: string;
   };
   handleChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => void;
+  handleGuardianChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   errors: {
     permanentAddress?: string;
     currentAddress?: string;
+    guardianId?: string;
     guardianName?: string;
     guardianContact?: string;
     guardianRelation?: string;
   };
+  guardians: Guardian[];
 }
 
-const Step2: React.FC<Step2Props> = ({ formData, handleChange, errors }) => {
+const Step2: React.FC<Step2Props> = ({
+  formData,
+  handleChange,
+  handleGuardianChange,
+  errors,
+  guardians,
+}) => {
   return (
     <VStack spacing={4} align="stretch">
       <Heading as="h2" size="md">
@@ -55,12 +76,30 @@ const Step2: React.FC<Step2Props> = ({ formData, handleChange, errors }) => {
         <FormErrorMessage>{errors.currentAddress}</FormErrorMessage>
       </FormControl>
 
+      <FormControl isInvalid={!!errors.guardianId}>
+        <FormLabel>Select Guardian</FormLabel>
+        <Select
+          name="guardianId"
+          value={formData.guardianId}
+          onChange={handleGuardianChange}
+          placeholder="Select guardian"
+        >
+          {guardians.map((guardian) => (
+            <option key={guardian.id} value={guardian.id}>
+              {guardian.name} ({guardian.relation})
+            </option>
+          ))}
+        </Select>
+        <FormErrorMessage>{errors.guardianId}</FormErrorMessage>
+      </FormControl>
+
       <FormControl isInvalid={!!errors.guardianName}>
         <FormLabel>Guardian Name</FormLabel>
         <Input
           name="guardianName"
           value={formData.guardianName}
           onChange={handleChange}
+          readOnly
         />
         <FormErrorMessage>{errors.guardianName}</FormErrorMessage>
       </FormControl>
@@ -71,6 +110,7 @@ const Step2: React.FC<Step2Props> = ({ formData, handleChange, errors }) => {
           name="guardianContact"
           value={formData.guardianContact}
           onChange={handleChange}
+          readOnly
         />
         <FormErrorMessage>{errors.guardianContact}</FormErrorMessage>
       </FormControl>
@@ -81,10 +121,12 @@ const Step2: React.FC<Step2Props> = ({ formData, handleChange, errors }) => {
           name="guardianRelation"
           value={formData.guardianRelation}
           onChange={handleChange}
+          readOnly
         />
         <FormErrorMessage>{errors.guardianRelation}</FormErrorMessage>
       </FormControl>
     </VStack>
   );
 };
+
 export default Step2;

@@ -41,6 +41,13 @@ const routes: IRoute[] = [
     path: "/addstaff",
     userType: "warden",
   },
+  {
+    name: "Add Hostel",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/addhostel",
+    userType: "warden",
+  },
   // userType: "warden",
   {
     name: "Add Students",
@@ -55,6 +62,13 @@ const routes: IRoute[] = [
     layout: "/admin",
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
     path: "/admission",
+    userType: "student",
+  },
+  {
+    name: "Admission Details",
+    layout: "/admin",
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    path: "/admissiondetails",
     userType: "warden",
   },
   // userType: "staff, student",
@@ -65,13 +79,20 @@ const routes: IRoute[] = [
     icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
     userType: "staff, student",
   },
+  {
+    name: "Attendance Details",
+    layout: "/admin",
+    path: "/attendancedetails",
+    icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
+    userType: " warden, staff",
+  },
   // userType: "parents",
   {
     name: "Check Attendance",
     layout: "/admin",
     path: "/check-attendance",
     icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
-    userType: "parents",
+    userType: "parent",
   },
 ];
 

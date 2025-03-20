@@ -41,12 +41,14 @@ import {
   getDocs,
   updateDoc,
   doc,
+  getDoc,
 } from "firebase/firestore";
 import Step1 from "./step1";
 import Step2 from "./step2";
 import Step3 from "./step3";
 import Step4 from "./step4";
-import step5 from "./step5";
+import Step5 from "./step5";
+import PaymentStep from "./paymentStep";
 
 import { db } from "config/firebase";
 import { getStorage } from "firebase/storage";
@@ -55,7 +57,23 @@ const storage = getStorage();
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import Step5 from "./step5";
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  contactNumber: string;
+  gender: string;
+  dateOfBirth: string;
+  aadharNumber: string;
+}
+
+interface Guardian {
+  id: string;
+  name: string;
+  contactNumber: string;
+  relation: string;
+}
 
 interface AdmissionPeriod {
   id: string;
@@ -65,15 +83,17 @@ interface AdmissionPeriod {
   isActive: boolean;
 }
 
-interface FeeStructure {
+interface Hostel {
   id: string;
-  roomType: string;
-  amount: number;
+  name: string;
+  availableSeats: number;
+  gender: string;
+  feeAmount: number;
   securityDeposit: number;
-  academicYear: string;
 }
 
 interface AdmissionFormData {
+  studentId: string;
   studentName: string;
   email: string;
   contactNumber: string;
@@ -82,12 +102,14 @@ interface AdmissionFormData {
   aadharNumber: string;
   permanentAddress: string;
   currentAddress: string;
+  guardianId: string;
   guardianName: string;
   guardianContact: string;
   guardianRelation: string;
   course: string;
   semester: string;
-  roomType: string;
+  hostelId: string;
+  hostelName: string;
   admissionPeriod: string;
   documents: {
     aadharCard: File | null;
@@ -101,18 +123,18 @@ interface AdmissionFormData {
   admissionStatus: string;
   academicYear: string;
   termsAccepted: boolean;
-  feeStructures: {
-    id: string;
-    feeAmount: number;
-    securityDeposit: number;
-  }[];
+  paymentId: string;
+  orderId: string;
 }
+
 export default function HostelAdmissionProcess() {
   const [currentStep, setCurrentStep] = useState(1);
   const [admissionPeriods, setAdmissionPeriods] = useState<AdmissionPeriod[]>(
     []
   );
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
+  const [hostels, setHostels] = useState<Hostel[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
@@ -122,6 +144,7 @@ export default function HostelAdmissionProcess() {
   const formBackgroundColor = useColorModeValue("white", "gray.700");
 
   const [formData, setFormData] = useState<AdmissionFormData>({
+    studentId: "",
     studentName: "",
     email: "",
     contactNumber: "",
@@ -130,12 +153,14 @@ export default function HostelAdmissionProcess() {
     aadharNumber: "",
     permanentAddress: "",
     currentAddress: "",
+    guardianId: "",
     guardianName: "",
     guardianContact: "",
     guardianRelation: "",
     course: "",
     semester: "",
-    roomType: "",
+    hostelId: "",
+    hostelName: "",
     admissionPeriod: "",
     documents: {
       aadharCard: null,
@@ -149,37 +174,104 @@ export default function HostelAdmissionProcess() {
     admissionStatus: "pending",
     academicYear: "",
     termsAccepted: false,
-    feeStructures: [],
+    paymentId: "",
+    orderId: "",
   });
 
   useEffect(() => {
     fetchAdmissionPeriods();
-    fetchFeeStructures();
+    fetchHostels();
+    fetchStudents();
+    fetchGuardians();
   }, []);
 
   useEffect(() => {
-    if (formData.roomType && formData.admissionPeriod) {
+    if (formData.hostelId && formData.admissionPeriod) {
       calculateFees();
     }
-  }, [formData.roomType, formData.admissionPeriod]);
+  }, [formData.hostelId, formData.admissionPeriod]);
 
-  // Modify your fetchAdmissionPeriods function to check all periods first
+  const fetchStudents = async () => {
+    try {
+      setIsLoading(true);
+      const q = query(
+        collection(db, "users"),
+        where("userType", "==", "student")
+      );
+      const querySnapshot = await getDocs(q);
+      const studentsList: Student[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        studentsList.push({
+          id: doc.id,
+          name: data.name,
+          email: data.email,
+          contactNumber: data.contactNumber,
+          gender: data.gender,
+          dateOfBirth: data.dateOfBirth,
+          aadharNumber: data.aadharNumber,
+        });
+      });
+
+      setStudents(studentsList);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load students.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchGuardians = async () => {
+    try {
+      setIsLoading(true);
+      const q = query(
+        collection(db, "users"),
+        where("userType", "==", "parent")
+      );
+      const querySnapshot = await getDocs(q);
+      const guardiansList: Guardian[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        guardiansList.push({
+          id: doc.id,
+          name: data.name,
+          contactNumber: data.contactNumber,
+          relation: data.relation || "Guardian",
+        });
+      });
+
+      setGuardians(guardiansList);
+    } catch (error) {
+      console.error("Error fetching guardians:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load guardians.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const fetchAdmissionPeriods = async () => {
     try {
       setIsLoading(true);
-      // First, let's check if there are ANY periods at all
-      const allPeriodsQuery = query(collection(db, "admissionPeriods"));
-      const allSnapshot = await getDocs(allPeriodsQuery);
-      console.log("All admission periods count:", allSnapshot.size);
-
-      // Then check for active ones
       const q = query(
         collection(db, "admissionPeriods"),
         where("isActive", "==", true)
       );
       const querySnapshot = await getDocs(q);
-      console.log("Active admission periods count:", querySnapshot.size);
-
       const periods: AdmissionPeriod[] = [];
 
       querySnapshot.forEach((doc) => {
@@ -208,30 +300,36 @@ export default function HostelAdmissionProcess() {
     }
   };
 
-  const fetchFeeStructures = async () => {
+  const fetchHostels = async () => {
     try {
       setIsLoading(true);
-      const q = query(collection(db, "feeStructures"));
+      const q = query(collection(db, "hostels"));
       const querySnapshot = await getDocs(q);
-      const fees: FeeStructure[] = [];
+      const hostelsList: Hostel[] = [];
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        fees.push({
+        hostelsList.push({
           id: doc.id,
-          roomType: data.roomType,
-          amount: data.amount,
+          name: data.name,
+          availableSeats: data.availableSeats,
+          gender: data.gender,
+          feeAmount: data.feeAmount,
           securityDeposit: data.securityDeposit,
-          academicYear: data.academicYear,
         });
       });
+      try {
+        console.log(hostelsList);
+      } catch (e) {
+        console.log(e);
+      }
 
-      setFeeStructures(fees);
+      setHostels(hostelsList);
     } catch (error) {
-      console.error("Error fetching fee structures:", error);
+      console.error("Error fetching hostels:", error);
       toast({
         title: "Error",
-        description: "Failed to load fee structures.",
+        description: "Failed to load hostels.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -246,20 +344,53 @@ export default function HostelAdmissionProcess() {
       (period) => period.id === formData.admissionPeriod
     );
 
-    const selectedFeeStructure = feeStructures.find(
-      (fee) =>
-        fee.roomType === formData.roomType &&
-        fee.academicYear === selectedPeriod?.academicYear
+    const selectedHostel = hostels.find(
+      (hostel) => hostel.id === formData.hostelId
     );
 
-    if (selectedFeeStructure && selectedPeriod) {
+    if (selectedHostel && selectedPeriod) {
       setFormData({
         ...formData,
-        feeAmount: selectedFeeStructure.amount,
-        securityDeposit: selectedFeeStructure.securityDeposit,
-        totalAmount:
-          selectedFeeStructure.amount + selectedFeeStructure.securityDeposit,
+        hostelName: selectedHostel.name,
+        feeAmount: selectedHostel.feeAmount,
+        securityDeposit: selectedHostel.securityDeposit,
+        totalAmount: selectedHostel.feeAmount + selectedHostel.securityDeposit,
         academicYear: selectedPeriod.academicYear,
+      });
+    }
+  };
+
+  const handleStudentChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const studentId = e.target.value;
+    const student = students.find((s) => s.id === studentId);
+
+    if (student) {
+      setFormData({
+        ...formData,
+        studentId: student.id,
+        studentName: student.name,
+        email: student.email,
+        contactNumber: student.contactNumber || "", // Add fallback empty string
+        gender: student.gender,
+        dateOfBirth: student.dateOfBirth,
+        aadharNumber: student.aadharNumber,
+      });
+    }
+  };
+
+  const handleGuardianChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const guardianId = e.target.value;
+    const guardian = guardians.find((g) => g.id === guardianId);
+
+    if (guardian) {
+      setFormData({
+        ...formData,
+        guardianId: guardian.id,
+        guardianName: guardian.name,
+        guardianContact: guardian.contactNumber,
+        guardianRelation: guardian.relation,
       });
     }
   };
@@ -311,6 +442,16 @@ export default function HostelAdmissionProcess() {
       });
     }
   };
+  const storeFileLocally = async (file: File) => {
+    try {
+      // Create a local URL for the file
+      const fileUrl = URL.createObjectURL(file);
+      return fileUrl;
+    } catch (error) {
+      console.error("Error storing file locally:", error);
+      throw error;
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
@@ -336,29 +477,8 @@ export default function HostelAdmissionProcess() {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
-      if (!formData.studentName.trim()) {
-        newErrors.studentName = "Student name is required";
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Invalid email format";
-      }
-      if (!formData.contactNumber.trim()) {
-        newErrors.contactNumber = "Contact number is required";
-      } else if (!/^\d{10}$/.test(formData.contactNumber)) {
-        newErrors.contactNumber = "Contact number must be 10 digits";
-      }
-      if (!formData.gender) {
-        newErrors.gender = "Gender is required";
-      }
-      if (!formData.dateOfBirth) {
-        newErrors.dateOfBirth = "Date of birth is required";
-      }
-      if (!formData.aadharNumber.trim()) {
-        newErrors.aadharNumber = "Aadhar number is required";
-      } else if (!/^\d{12}$/.test(formData.aadharNumber)) {
-        newErrors.aadharNumber = "Aadhar number must be 12 digits";
+      if (!formData.studentId) {
+        newErrors.studentId = "Student selection is required";
       }
     } else if (step === 2) {
       if (!formData.permanentAddress.trim()) {
@@ -367,16 +487,8 @@ export default function HostelAdmissionProcess() {
       if (!formData.currentAddress.trim()) {
         newErrors.currentAddress = "Current address is required";
       }
-      if (!formData.guardianName.trim()) {
-        newErrors.guardianName = "Guardian name is required";
-      }
-      if (!formData.guardianContact.trim()) {
-        newErrors.guardianContact = "Guardian contact is required";
-      } else if (!/^\d{10}$/.test(formData.guardianContact)) {
-        newErrors.guardianContact = "Guardian contact must be 10 digits";
-      }
-      if (!formData.guardianRelation.trim()) {
-        newErrors.guardianRelation = "Guardian relation is required";
+      if (!formData.guardianId) {
+        newErrors.guardianId = "Guardian selection is required";
       }
     } else if (step === 3) {
       if (!formData.course.trim()) {
@@ -385,8 +497,8 @@ export default function HostelAdmissionProcess() {
       if (!formData.semester.trim()) {
         newErrors.semester = "Semester is required";
       }
-      if (!formData.roomType) {
-        newErrors.roomType = "Room type is required";
+      if (!formData.hostelId) {
+        newErrors.hostelId = "Hostel selection is required";
       }
       if (!formData.admissionPeriod) {
         newErrors.admissionPeriod = "Admission period is required";
@@ -404,6 +516,10 @@ export default function HostelAdmissionProcess() {
     } else if (step === 5) {
       if (!formData.termsAccepted) {
         newErrors.termsAccepted = "You must accept the terms and conditions";
+      }
+    } else if (step === 6) {
+      if (!formData.paymentId) {
+        newErrors.paymentId = "Payment must be completed";
       }
     }
 
@@ -423,11 +539,10 @@ export default function HostelAdmissionProcess() {
 
   const uploadFile = async (file: File, path: string) => {
     try {
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      return await getDownloadURL(storageRef);
+      // Instead of uploading to Firebase, we'll just store a reference locally
+      return await storeFileLocally(file);
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Error handling file:", error);
       throw error;
     }
   };
@@ -468,6 +583,15 @@ export default function HostelAdmissionProcess() {
     }
   };
 
+  const handlePaymentSuccess = (paymentId: string, orderId: string) => {
+    setFormData({
+      ...formData,
+      paymentStatus: "completed",
+      paymentId: paymentId,
+      orderId: orderId,
+    });
+  };
+
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) {
       return;
@@ -476,45 +600,24 @@ export default function HostelAdmissionProcess() {
     try {
       setIsSubmitting(true);
 
-      // Upload documents
-      // const aadharCardUrl = await uploadFile(
-      //   formData.documents.aadharCard as File,
-      //   `documents/${formData.studentName}/aadhar_card`
-      // );
-      // const photoUrl = await uploadFile(
-      //   formData.documents.photo as File,
-      //   `documents/${formData.studentName}/photo`
-      // );
-      // const addressProofUrl = await uploadFile(
-      //   formData.documents.addressProof as File,
-      //   `documents/${formData.studentName}/address_proof`
-      // );
-
-      // // Generate PDF
-      // const pdfBlob = await generatePdf();
-      // const pdfUrl = pdfBlob
-      //   ? await uploadFile(
-      //       pdfBlob as unknown as File,
-      //       `forms/${formData.studentName}_admission_form.pdf`
-      //     )
-      //   : "";
-      // Create local URLs for the files instead of uploading to Firebase
+      // Store files locally instead of uploading to Firebase
       const aadharCardUrl = formData.documents.aadharCard
-        ? URL.createObjectURL(formData.documents.aadharCard)
+        ? await storeFileLocally(formData.documents.aadharCard as File)
         : "";
       const photoUrl = formData.documents.photo
-        ? URL.createObjectURL(formData.documents.photo)
+        ? await storeFileLocally(formData.documents.photo as File)
         : "";
       const addressProofUrl = formData.documents.addressProof
-        ? URL.createObjectURL(formData.documents.addressProof)
+        ? await storeFileLocally(formData.documents.addressProof as File)
         : "";
 
       // Generate PDF
       const pdfBlob = await generatePdf();
-      const pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : "";
+      const pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob as Blob) : "";
 
       // Save admission data to Firestore
       const admissionDocRef = await addDoc(collection(db, "hostelAdmissions"), {
+        studentId: formData.studentId,
         studentName: formData.studentName,
         email: formData.email,
         contactNumber: formData.contactNumber,
@@ -523,36 +626,41 @@ export default function HostelAdmissionProcess() {
         aadharNumber: formData.aadharNumber,
         permanentAddress: formData.permanentAddress,
         currentAddress: formData.currentAddress,
+        guardianId: formData.guardianId,
         guardianName: formData.guardianName,
         guardianContact: formData.guardianContact,
         guardianRelation: formData.guardianRelation,
         course: formData.course,
         semester: formData.semester,
-        roomType: formData.roomType,
+        hostelId: formData.hostelId,
+        hostelName: formData.hostelName,
         admissionPeriod: formData.admissionPeriod,
         feeAmount: formData.feeAmount,
         securityDeposit: formData.securityDeposit,
         totalAmount: formData.totalAmount,
         paymentStatus: formData.paymentStatus,
-        admissionStatus: formData.admissionStatus,
+        paymentId: formData.paymentId,
+        orderId: formData.orderId,
+        admissionStatus: "approved", // Auto-approve if payment is successful
         academicYear: formData.academicYear,
         termsAccepted: formData.termsAccepted,
         aadharCardUrl,
         photoUrl,
         addressProofUrl,
         pdfUrl,
+        localFiles: true, // Add a flag to indicate files are stored locally
         createdAt: serverTimestamp(),
       });
 
-      // Update admission period
-      const periodDocRef = doc(
-        db,
-        "admissionPeriods",
-        formData.admissionPeriod
-      );
-      await updateDoc(periodDocRef, {
-        isActive: false,
-      });
+      // Update hostel available seats
+      const hostelDocRef = doc(db, "hostels", formData.hostelId);
+      const hostelDoc = await getDoc(hostelDocRef);
+      if (hostelDoc.exists()) {
+        const hostelData = hostelDoc.data();
+        await updateDoc(hostelDocRef, {
+          availableSeats: Math.max(0, hostelData.availableSeats - 1),
+        });
+      }
 
       toast({
         title: "Admission successful",
@@ -563,6 +671,7 @@ export default function HostelAdmissionProcess() {
       });
 
       setFormData({
+        studentId: "",
         studentName: "",
         email: "",
         contactNumber: "",
@@ -571,12 +680,14 @@ export default function HostelAdmissionProcess() {
         aadharNumber: "",
         permanentAddress: "",
         currentAddress: "",
+        guardianId: "",
         guardianName: "",
         guardianContact: "",
         guardianRelation: "",
         course: "",
         semester: "",
-        roomType: "",
+        hostelId: "",
+        hostelName: "",
         admissionPeriod: "",
         documents: {
           aadharCard: null,
@@ -590,7 +701,8 @@ export default function HostelAdmissionProcess() {
         admissionStatus: "pending",
         academicYear: "",
         termsAccepted: false,
-        feeStructures: [],
+        paymentId: "",
+        orderId: "",
       });
 
       setCurrentStep(1);
@@ -609,7 +721,13 @@ export default function HostelAdmissionProcess() {
   };
 
   return (
-    <Box bg={formBackgroundColor} p={8} rounded="md" shadow="md">
+    <Box
+      bg={formBackgroundColor}
+      p={8}
+      rounded="md"
+      shadow="md"
+      className="mt-24"
+    >
       <Heading as="h1" mb={6}>
         Hostel Admission Process
       </Heading>
@@ -625,14 +743,18 @@ export default function HostelAdmissionProcess() {
                 formData={formData}
                 handleChange={handleChange}
                 handleRadioChange={handleRadioChange}
+                handleStudentChange={handleStudentChange}
                 errors={errors}
+                students={students}
               />
             )}
             {currentStep === 2 && (
               <Step2
                 formData={formData}
                 handleChange={handleChange}
+                handleGuardianChange={handleGuardianChange}
                 errors={errors}
+                guardians={guardians}
               />
             )}
             {currentStep === 3 && (
@@ -640,7 +762,8 @@ export default function HostelAdmissionProcess() {
                 formData={formData}
                 handleChange={handleChange}
                 errors={errors}
-                admissionPeriods={admissionPeriods} // Add this line
+                admissionPeriods={admissionPeriods}
+                hostels={hostels}
               />
             )}
             {currentStep === 4 && (
@@ -657,6 +780,13 @@ export default function HostelAdmissionProcess() {
                 errors={errors}
               />
             )}
+            {currentStep === 6 && (
+              <PaymentStep
+                formData={formData}
+                onPaymentSuccess={handlePaymentSuccess}
+                errors={errors}
+              />
+            )}
           </VStack>
           <Divider my={6} />
           <HStack justify="space-between">
@@ -665,7 +795,7 @@ export default function HostelAdmissionProcess() {
                 Previous
               </Button>
             )}
-            {currentStep < 5 ? (
+            {currentStep < 6 ? (
               <Button onClick={handleNext} isDisabled={isSubmitting}>
                 Next
               </Button>
@@ -674,6 +804,7 @@ export default function HostelAdmissionProcess() {
                 colorScheme="teal"
                 onClick={handleSubmit}
                 isLoading={isSubmitting}
+                isDisabled={!formData.paymentId}
               >
                 Submit
               </Button>

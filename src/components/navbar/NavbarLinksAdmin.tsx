@@ -30,7 +30,14 @@ import routes from "routes";
 import { auth, db } from "config/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { logout } from "lib/auth"; // Update with the correct path
 
 export default function HeaderLinks(props: {
@@ -62,19 +69,31 @@ export default function HeaderLinks(props: {
     const fetchUserData = async () => {
       try {
         const currentUser = auth.currentUser;
-        if (currentUser) {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUserName(userData.name || "User");
 
-            // Generate initials from name
-            const nameParts = userData.name.split(" ");
-            if (nameParts.length > 1) {
-              setUserInitials(`${nameParts[0][0]}${nameParts[1][0]}`);
-            } else if (nameParts[0]) {
-              setUserInitials(nameParts[0][0]);
-            }
+        if (currentUser) {
+          // For parents and staff, we need to query by email since their auth UID doesn't match the document ID
+          const q = query(
+            collection(db, "users"),
+            where("email", "==", currentUser.email),
+            where("status", "==", "active")
+          );
+
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data();
+            setUserName(userData.name || "User");
+            // Set initials from name
+            const initials = userData.name
+              ? userData.name
+                  .split(" ")
+                  .map((n: any[]) => n[0])
+                  .join("")
+                  .toUpperCase()
+              : "U";
+            setUserInitials(initials);
+          } else {
+            console.log("No matching user document found");
           }
         }
       } catch (error) {
@@ -84,7 +103,6 @@ export default function HeaderLinks(props: {
 
     fetchUserData();
   }, []);
-
   const handleLogout = async () => {
     try {
       const result = await logout();
@@ -92,7 +110,7 @@ export default function HeaderLinks(props: {
         // Redirect to login page or home page after logout
         window.location.href = "/auth/sign-in"; // Update with your login route
       } else {
-        console.error("Logout failed:", result.error);
+        console.error("Logout failed");
       }
     } catch (error) {
       console.error("Error during logout:", error);

@@ -9,10 +9,10 @@ export function middleware(request: NextRequest) {
   const protectedPaths = ["/dashboard"];
 
   // Paths that should not be accessible when authenticated
-  const authPaths = ["/login", "/signup"];
+  const authPaths = ["/auth/sign-in", "/auth/sign-up"];
 
   if (protectedPaths.some((path) => pathname.startsWith(path)) && !isAuth) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
   }
 
   if (authPaths.includes(pathname) && isAuth) {

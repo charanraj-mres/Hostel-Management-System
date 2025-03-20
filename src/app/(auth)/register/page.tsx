@@ -66,7 +66,7 @@ export default function RegisterPage() {
       toast.success(
         "Registration successful! Please check your email for verification."
       );
-      router.push("/login");
+      router.push("/auth/sign-in");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -182,7 +182,7 @@ export default function RegisterPage() {
             onPointerLeaveCapture={undefined}
           >
             Already have an account?
-            <Link href="/login">
+            <Link href="/auth/sign-in">
               <Typography
                 as="span"
                 variant="small"

@@ -181,7 +181,7 @@ export function Navbar() {
                 variant="text"
                 color={isScrolling ? "blue-gray" : "white"}
                 className="flex items-center gap-1"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/auth/sign-in")}
                 placeholder={undefined}
                 onPointerEnterCapture={undefined}
                 onPointerLeaveCapture={undefined}
@@ -191,7 +191,7 @@ export function Navbar() {
               <Button
                 color={isScrolling ? "blue-gray" : "white"}
                 size="sm"
-                onClick={() => router.push("/register")}
+                onClick={() => router.push("/auth/sign-up")}
                 placeholder={undefined}
                 onPointerEnterCapture={undefined}
                 onPointerLeaveCapture={undefined}
@@ -245,7 +245,7 @@ export function Navbar() {
                   variant="text"
                   color="blue-gray"
                   fullWidth
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push("/auth/sign-in")}
                   placeholder={undefined}
                   onPointerEnterCapture={undefined}
                   onPointerLeaveCapture={undefined}
@@ -255,7 +255,7 @@ export function Navbar() {
                 <Button
                   color="blue-gray"
                   fullWidth
-                  onClick={() => router.push("/register")}
+                  onClick={() => router.push("/auth/sign-up")}
                   placeholder={undefined}
                   onPointerEnterCapture={undefined}
                   onPointerLeaveCapture={undefined}

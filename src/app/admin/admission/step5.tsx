@@ -1,3 +1,4 @@
+import React from "react";
 import {
   VStack,
   Heading,
@@ -7,6 +8,7 @@ import {
   FormControl,
   Checkbox,
   FormErrorMessage,
+  Box,
 } from "@chakra-ui/react";
 
 interface Step5Props {
@@ -24,7 +26,7 @@ interface Step5Props {
     guardianContact: string;
     course: string;
     semester: string;
-    roomType: string;
+    hostelName: string;
     academicYear: string;
     feeAmount: number;
     securityDeposit: number;
@@ -45,7 +47,7 @@ const Step5: React.FC<Step5Props> = ({
   return (
     <VStack spacing={4} align="stretch">
       <Heading as="h2" size="md">
-        Review & Submit
+        Review & Terms
       </Heading>
 
       <Card p={4} id="admission-form-preview">
@@ -74,11 +76,11 @@ const Step5: React.FC<Step5Props> = ({
         <Divider my={3} />
 
         <Heading as="h3" size="sm" mb={3}>
-          Academic & Room Information
+          Academic & Hostel Information
         </Heading>
         <Text>Course: {formData.course}</Text>
         <Text>Semester: {formData.semester}</Text>
-        <Text>Room Type: {formData.roomType}</Text>
+        <Text>Hostel: {formData.hostelName}</Text>
         <Text>Academic Year: {formData.academicYear}</Text>
 
         <Divider my={3} />
@@ -86,10 +88,33 @@ const Step5: React.FC<Step5Props> = ({
         <Heading as="h3" size="sm" mb={3}>
           Fee Details
         </Heading>
-        <Text>Room Fee: ₹{formData.feeAmount}</Text>
+        <Text>Hostel Fee: ₹{formData.feeAmount}</Text>
         <Text>Security Deposit: ₹{formData.securityDeposit}</Text>
         <Text fontWeight="bold">Total Amount: ₹{formData.totalAmount}</Text>
       </Card>
+
+      <Box p={4} borderWidth="1px" borderRadius="md">
+        <Heading as="h3" size="sm" mb={3}>
+          Terms and Conditions
+        </Heading>
+        <Text mb={2}>
+          1. The hostel fee is non-refundable once the admission is confirmed.
+        </Text>
+        <Text mb={2}>
+          2. Security deposit is refundable at the end of the stay, subject to
+          deductions for damages, if any.
+        </Text>
+        <Text mb={2}>
+          3. Students must follow all hostel rules and regulations.
+        </Text>
+        <Text mb={2}>
+          4. Any violation of hostel rules may lead to disciplinary action.
+        </Text>
+        <Text mb={2}>
+          5. The institute reserves the right to change the hostel allocation if
+          needed.
+        </Text>
+      </Box>
 
       <FormControl isInvalid={!!errors.termsAccepted}>
         <Checkbox
@@ -97,11 +122,12 @@ const Step5: React.FC<Step5Props> = ({
           isChecked={formData.termsAccepted}
           onChange={handleCheckboxChange}
         >
-          I agree to the terms and conditions
+          I have read and agree to the terms and conditions
         </Checkbox>
         <FormErrorMessage>{errors.termsAccepted}</FormErrorMessage>
       </FormControl>
     </VStack>
   );
 };
+
 export default Step5;

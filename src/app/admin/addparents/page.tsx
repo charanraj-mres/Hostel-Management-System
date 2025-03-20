@@ -61,6 +61,7 @@ type Parent = {
   docId: string;
   name: string;
   email: string;
+  contactNumber: string;
   studentName: string;
   guardianType: string;
 };
@@ -69,6 +70,7 @@ export default function ParentManagement() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    contactNumber: "",
     studentId: "",
     guardianType: "",
   });
@@ -144,6 +146,7 @@ export default function ParentManagement() {
           docId: doc.id,
           name: data.name,
           email: data.email,
+          contactNumber: data.contact,
           studentName: data.studentName,
           guardianType: data.guardianType,
         });
@@ -246,6 +249,7 @@ export default function ParentManagement() {
         id: uid,
         name: formData.name,
         email: formData.email,
+        contactNumber: formData.contactNumber,
         userType: "parent",
         status: "active",
         createdAt: serverTimestamp(),
@@ -268,6 +272,7 @@ export default function ParentManagement() {
       setFormData({
         name: "",
         email: "",
+        contactNumber: "",
         studentId: "",
         guardianType: "",
       });
@@ -363,6 +368,7 @@ export default function ParentManagement() {
                 <Tr>
                   <Th>Name</Th>
                   <Th>Email</Th>
+                  <Th>Contact</Th>
                   <Th>Student</Th>
                   <Th>Relationship</Th>
                   <Th>Actions</Th>
@@ -374,6 +380,7 @@ export default function ParentManagement() {
                     <Tr key={parent.id}>
                       <Td>{parent.name}</Td>
                       <Td>{parent.email}</Td>
+                      <Td>{parent.contactNumber}</Td>
                       <Td>{parent.studentName}</Td>
                       <Td>{getGuardianTypeDisplay(parent.guardianType)}</Td>
                       <Td>
@@ -419,7 +426,6 @@ export default function ParentManagement() {
                 />
                 <FormErrorMessage>{errors.name}</FormErrorMessage>
               </FormControl>
-
               <FormControl isInvalid={!!errors.email} mb={4} isRequired>
                 <FormLabel>Email</FormLabel>
                 <Input
@@ -429,9 +435,19 @@ export default function ParentManagement() {
                   onChange={handleChange}
                   placeholder="Enter parent's email"
                 />
-                <FormErrorMessage>{errors.email}</FormErrorMessage>
+                <FormErrorMessage>{errors.contactNumber}</FormErrorMessage>
+              </FormControl>{" "}
+              <FormControl isInvalid={!!errors.contactNumber} mb={4} isRequired>
+                <FormLabel>contactNumber</FormLabel>
+                <Input
+                  name="contactNumber"
+                  type="number"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  placeholder="Enter parent's contactNumber"
+                />
+                <FormErrorMessage>{errors.contactNumber}</FormErrorMessage>
               </FormControl>
-
               <FormControl isInvalid={!!errors.studentId} mb={4} isRequired>
                 <FormLabel>Student</FormLabel>
                 <Select
@@ -448,7 +464,6 @@ export default function ParentManagement() {
                 </Select>
                 <FormErrorMessage>{errors.studentId}</FormErrorMessage>
               </FormControl>
-
               <FormControl isInvalid={!!errors.guardianType} mb={4} isRequired>
                 <FormLabel>Guardian Type</FormLabel>
                 <Select

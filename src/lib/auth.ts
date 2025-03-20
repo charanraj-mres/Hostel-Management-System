@@ -1,103 +1,73 @@
-import { auth, db } from "config/firebase";
+// lib/auth.ts
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
-  sendEmailVerification,
 } from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { auth, db } from "config/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-// Generate a random 4-digit ID
-function generateUniqueId(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
-// Check if ID already exists in the database
-async function isIdUnique(id: string): Promise<boolean> {
-  const usersRef = collection(db, "users");
-  const q = query(usersRef, where("uniqueId", "==", id));
-  const snapshot = await getDocs(q);
-  return snapshot.empty;
-}
-
-// Generate a unique ID that doesn't exist in the database
-async function generateVerifiedUniqueId(): Promise<string> {
-  let id = generateUniqueId();
-  let isUnique = await isIdUnique(id);
-
-  // Keep generating until we find a unique ID
-  while (!isUnique) {
-    id = generateUniqueId();
-    isUnique = await isIdUnique(id);
-  }
-
-  return id;
-}
-
-export async function login(email: string, password: string) {
+export const login = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-    if (!userCredential.user.emailVerified) {
-      throw new Error("Please verify your email before logging in");
-    }
-    return { success: true };
+    return { user: userCredential.user };
   } catch (error: any) {
-    return { error: error.message };
+    return {
+      error:
+        error.message || "Failed to log in. Please check your credentials.",
+    };
   }
-}
+};
 
-export async function signup(
+export const signup = async (
   name: string,
   email: string,
-  Gender: string,
+  gender: string,
   password: string
-) {
+) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
       password
     );
+    const user = userCredential.user;
 
-    // Generate a unique 4-digit ID
-    const uniqueId = await generateVerifiedUniqueId();
-
-    // Create user document
-    await setDoc(doc(db, "users", userCredential.user.uid), {
+    // Create user document in Firestore
+    await setDoc(doc(db, "users", user.uid), {
       name,
       email,
-      Gender,
-      uniqueId, // Store the unique ID
-      userType: "student",
-      status: "active",
-      createdAt: new Date().toISOString(),
+      gender,
+      user_type: "user", // Default user type
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
 
-    // Send verification email
-    await sendEmailVerification(userCredential.user);
-
-    return { success: true };
+    return { user };
   } catch (error: any) {
-    return { error: error.message };
+    return {
+      error: error.message || "Failed to create account. Please try again.",
+    };
   }
-}
+};
 
-export async function logout() {
+export const resetPassword = async (email: string) => {
   try {
-    await signOut(auth);
+    await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return {
+      error: error.message || "Failed to send password reset email.",
+    };
   }
-}
+};
+
+export const logout = async () => {
+  await signOut(auth);
+  return { success: true };
+};

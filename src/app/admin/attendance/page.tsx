@@ -23,11 +23,17 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
-  Select,
   Grid,
   GridItem,
   Badge,
   Flex,
+  Stat,
+  StatLabel,
+  StatNumber,
+  Alert,
+  AlertIcon,
+  Tooltip,
+  Heading,
 } from "@chakra-ui/react";
 import {
   collection,
@@ -35,19 +41,24 @@ import {
   query,
   where,
   getDocs,
-  Timestamp,
   getFirestore,
-  setDoc,
-  doc,
-  updateDoc,
+  serverTimestamp,
+  onSnapshot,
+  orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { InfoIcon } from "@chakra-ui/icons";
 
+/// Define interfaces
 interface Log {
   id: string;
-  timestamp: { seconds: number };
+  timestamp: { seconds: number; nanoseconds: number };
   status: string;
   regularized: boolean;
+  isLate?: boolean;
+  reason?: string;
+  serverTime?: { seconds: number; nanoseconds: number };
 }
 
 // Calendar component
@@ -56,9 +67,16 @@ interface CalendarProps {
   month: number;
   year: number;
   onDayClick: (date: Date) => void;
+  onMonthChange: (increment: number) => void;
 }
 
-const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
+const Calendar = ({
+  logs,
+  month,
+  year,
+  onDayClick,
+  onMonthChange,
+}: CalendarProps) => {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -90,16 +108,15 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
     // Check if day has both punch in and punch out
     const hasPunchIn = dayLogs.some((log) => log.status === "Punched In");
     const hasPunchOut = dayLogs.some((log) => log.status === "Punched Out");
+    const isLate = dayLogs.some((log) => log.isLate);
 
     if (hasPunchIn && hasPunchOut) {
-      return "present";
+      return isLate ? "late" : "present";
     } else if (hasPunchIn) {
       return "missing-out";
     } else {
       // Check if this was regularized
-      return dayLogs.some((log: Log) => log.regularized)
-        ? "regularized"
-        : "absent";
+      return dayLogs.some((log) => log.regularized) ? "regularized" : "absent";
     }
   };
 
@@ -122,6 +139,20 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
 
   return (
     <Box w="100%" bg="white" p={4} borderRadius="md" shadow="md">
+      <Flex justify="space-between" align="center" mb={4}>
+        <Heading size="md">
+          {new Date(year, month).toLocaleString("default", { month: "long" })}{" "}
+          {year}
+        </Heading>
+        <Flex>
+          <Button size="sm" onClick={() => onMonthChange(-1)} mr={2}>
+            Previous
+          </Button>
+          <Button size="sm" onClick={() => onMonthChange(1)}>
+            Next
+          </Button>
+        </Flex>
+      </Flex>
       <Grid templateColumns="repeat(7, 1fr)" gap={1} textAlign="center">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <GridItem key={day} fontWeight="bold" p={2}>
@@ -135,6 +166,11 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
           }
 
           const status = getStatusForDay(day);
+          const isToday =
+            new Date().getDate() === day &&
+            new Date().getMonth() === month &&
+            new Date().getFullYear() === year;
+
           return (
             <GridItem
               key={`day-${day}`}
@@ -145,6 +181,7 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
               cursor="pointer"
               onClick={() => onDayClick(new Date(year, month, day))}
               _hover={{ opacity: 0.8 }}
+              border={isToday ? "2px solid black" : "none"}
             >
               {day}
             </GridItem>
@@ -152,7 +189,7 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
         })}
       </Grid>
 
-      <Flex mt={4} justifyContent="center" gap={4}>
+      <Flex mt={4} justifyContent="center" gap={4} flexWrap="wrap">
         <Badge colorScheme="green">Present</Badge>
         <Badge colorScheme="red">Absent</Badge>
         <Badge colorScheme="orange">Missing Punch Out</Badge>
@@ -163,7 +200,7 @@ const Calendar = ({ logs, month, year, onDayClick }: CalendarProps) => {
   );
 };
 
-export default function Attendance() {
+export default function StudentAttendance() {
   const [isPunchedIn, setIsPunchedIn] = useState(false);
   const [punchLog, setPunchLog] = useState<Log[]>([]);
   const [location, setLocation] = useState<{
@@ -175,12 +212,28 @@ export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+    regularized: 0,
+  });
+  const [punchInTime, setPunchInTime] = useState<Date | null>(null);
+  const [punchOutTime, setPunchOutTime] = useState<Date | null>(null);
+  const [workingHours, setWorkingHours] = useState<string>("");
+  const [dayLogs, setDayLogs] = useState<Log[]>([]);
+  const [hasPunchedInToday, setHasPunchedInToday] = useState(false);
+  const [hasPunchedOutToday, setHasPunchedOutToday] = useState(false);
 
+  // For regularization
   const {
     isOpen: isRegularizeOpen,
     onOpen: onRegularizeOpen,
     onClose: onRegularizeClose,
   } = useDisclosure();
+
+  // For day details
   const {
     isOpen: isDayDetailsOpen,
     onOpen: onDayDetailsOpen,
@@ -194,22 +247,25 @@ export default function Attendance() {
     outTime: "",
   });
 
-  interface Log {
-    id: string;
-    timestamp: { seconds: number };
-    status: string;
-    regularized: boolean;
-  }
-
-  const [dayLogs, setDayLogs] = useState<Log[]>([]);
   const toast = useToast();
   const db = getFirestore();
   const auth = getAuth();
+  const timeInterval = useRef<any>(null);
+
+  // Start the clock timer
+  useEffect(() => {
+    // Update current time every second
+    timeInterval.current = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timeInterval.current);
+  }, []);
 
   // Fetch location when component mounts
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      navigator.geolocation.watchPosition(
         (position) => {
           setLocation({
             latitude: position.coords.latitude,
@@ -226,7 +282,8 @@ export default function Attendance() {
             duration: 5000,
             isClosable: true,
           });
-        }
+        },
+        { enableHighAccuracy: true, maximumAge: 30000, timeout: 27000 }
       );
     }
 
@@ -234,7 +291,7 @@ export default function Attendance() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
-        fetchUserLogs(user.uid);
+        setupRealtimeListener(user.uid);
       } else {
         // Redirect to login or handle unauthenticated state
         toast({
@@ -248,64 +305,22 @@ export default function Attendance() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (timeInterval.current) clearInterval(timeInterval.current);
+    };
   }, []);
 
-  // Check if user is already punched in for today
-  useEffect(() => {
-    if (userId) {
-      checkPunchStatus();
-    }
-  }, [userId]);
+  // Set up realtime listener for attendance logs
+  const setupRealtimeListener = (uid: string) => {
+    const attendanceRef = collection(db, "attendance");
+    const q = query(
+      attendanceRef,
+      where("userId", "==", uid),
+      orderBy("timestamp", "desc")
+    );
 
-  const checkPunchStatus = async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const attendanceRef = collection(db, "attendance");
-      const q = query(
-        attendanceRef,
-        where("userId", "==", userId),
-        where("timestamp", ">=", Timestamp.fromDate(today)),
-        where("timestamp", "<", Timestamp.fromDate(tomorrow))
-      );
-
-      const querySnapshot = await getDocs(q);
-      const todayLogs: Log[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        todayLogs.push({
-          id: doc.id,
-          timestamp: data.timestamp,
-          status: data.status,
-          regularized: data.regularized,
-        });
-      });
-
-      // Check if last log is a punch in (no punch out yet)
-      if (todayLogs.length > 0) {
-        const lastLog = todayLogs.sort(
-          (a, b) => b.timestamp.seconds - a.timestamp.seconds
-        )[0];
-
-        setIsPunchedIn(lastLog.status === "Punched In");
-      }
-    } catch (error) {
-      console.error("Error checking punch status:", error);
-    }
-  };
-
-  const fetchUserLogs = async (uid: string) => {
-    try {
-      const attendanceRef = collection(db, "attendance");
-      const q = query(attendanceRef, where("userId", "==", uid));
-      const querySnapshot = await getDocs(q);
-
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const logs: Log[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -313,30 +328,152 @@ export default function Attendance() {
           id: doc.id,
           timestamp: data.timestamp,
           status: data.status,
-          regularized: data.regularized,
+          regularized: data.regularized || false,
+          isLate: data.isLate || false,
+          reason: data.reason || "",
+          serverTime: data.serverTime || null,
         });
       });
 
-      setPunchLog(
-        logs.sort((a: Log, b: Log) => b.timestamp.seconds - a.timestamp.seconds)
-      );
-    } catch (error) {
-      console.error("Error fetching attendance logs:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch attendance records",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
+      setPunchLog(logs);
+      calculateAttendanceStats(logs);
+      checkPunchStatus(logs);
+    });
+
+    return unsubscribe;
+  };
+
+  // Calculate attendance statistics
+  const calculateAttendanceStats = (logs: Log[]) => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Filter logs for current month
+    const monthLogs = logs.filter((log) => {
+      const logDate = new Date(log.timestamp.seconds * 1000);
+      return logDate >= firstDayOfMonth && logDate <= today;
+    });
+
+    // Get unique dates with attendance
+    const datesWithAttendance = new Set();
+    const lateAttendanceDates = new Set();
+    const regularizedDates = new Set();
+
+    monthLogs.forEach((log) => {
+      const logDate = new Date(log.timestamp.seconds * 1000)
+        .toISOString()
+        .split("T")[0];
+
+      if (log.status === "Punched In" || log.status === "Punched Out") {
+        datesWithAttendance.add(logDate);
+
+        if (log.isLate) {
+          lateAttendanceDates.add(logDate);
+        }
+
+        if (log.regularized) {
+          regularizedDates.add(logDate);
+        }
+      }
+    });
+
+    // Calculate business days so far this month
+    const businessDaysSoFar = getBusinessDayCount(firstDayOfMonth, today);
+
+    setAttendanceStats({
+      present: datesWithAttendance.size,
+      absent: Math.max(0, businessDaysSoFar - datesWithAttendance.size),
+      late: lateAttendanceDates.size,
+      regularized: regularizedDates.size,
+    });
+  };
+
+  // Count business days between two dates
+  const getBusinessDayCount = (startDate: Date, endDate: Date) => {
+    let count = 0;
+    const curDate = new Date(startDate.getTime());
+
+    while (curDate <= endDate) {
+      const dayOfWeek = curDate.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+      curDate.setDate(curDate.getDate() + 1);
+    }
+
+    return count;
+  };
+
+  // Check if user has already punched in/out for today
+  const checkPunchStatus = (logs: Log[]) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Filter logs for today
+      const todayLogs = logs.filter((log) => {
+        const logDate = new Date(log.timestamp.seconds * 1000);
+        const logDay = new Date(
+          logDate.getFullYear(),
+          logDate.getMonth(),
+          logDate.getDate()
+        );
+        return logDay.getTime() === today.getTime();
       });
+
+      // Check for punch in and punch out
+      const punchInLog = todayLogs.find((log) => log.status === "Punched In");
+      const punchOutLog = todayLogs.find((log) => log.status === "Punched Out");
+
+      setHasPunchedInToday(!!punchInLog);
+      setHasPunchedOutToday(!!punchOutLog);
+
+      // Set punch in time if available
+      if (punchInLog) {
+        setPunchInTime(new Date(punchInLog.timestamp.seconds * 1000));
+      } else {
+        setPunchInTime(null);
+      }
+
+      // Set punch out time if available
+      if (punchOutLog) {
+        setPunchOutTime(new Date(punchOutLog.timestamp.seconds * 1000));
+      } else {
+        setPunchOutTime(null);
+      }
+
+      // Update current status
+      if (punchInLog && !punchOutLog) {
+        setIsPunchedIn(true);
+      } else {
+        setIsPunchedIn(false);
+      }
+
+      // Calculate working hours if both punch in and out exist
+      if (punchInLog && punchOutLog) {
+        const punchInTime = new Date(punchInLog.timestamp.seconds * 1000);
+        const punchOutTime = new Date(punchOutLog.timestamp.seconds * 1000);
+
+        // Calculate difference in milliseconds
+        const diffMs = punchOutTime.getTime() - punchInTime.getTime();
+
+        // Convert to hours and minutes
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        setWorkingHours(`${hours}h ${minutes}m`);
+      } else {
+        setWorkingHours("");
+      }
+    } catch (error) {
+      console.error("Error checking punch status:", error);
     }
   };
 
+  // Handle punch in/out
   const handlePunch = async () => {
-    if (!location.latitude || !location.longitude) {
+    if (!userId) {
       toast({
-        title: "Location Required",
-        description: "Please enable location services to record attendance",
+        title: "Authentication required",
+        description: "Please login to use the attendance system.",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -344,226 +481,472 @@ export default function Attendance() {
       return;
     }
 
-    try {
-      const currentTime = new Date();
-      const newStatus = isPunchedIn ? "Punched Out" : "Punched In";
+    if (!location.latitude || !location.longitude) {
+      toast({
+        title: "Location Required",
+        description: "Please enable location services to punch in/out.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
 
-      // Check for late punch-in (after 9:30 AM)
-      let isLate = false;
-      if (newStatus === "Punched In") {
-        const lateThreshold = new Date(currentTime);
-        lateThreshold.setHours(9, 30, 0, 0);
-        isLate = currentTime > lateThreshold;
+    try {
+      setLoading(true);
+
+      const now = new Date();
+      const status = isPunchedIn ? "Punched Out" : "Punched In";
+
+      // Check if user already has both punches for today
+      if (status === "Punched In" && hasPunchedInToday) {
+        toast({
+          title: "Already Punched In",
+          description: "You have already punched in today.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
       }
 
-      const logData = {
+      if (status === "Punched Out" && hasPunchedOutToday) {
+        toast({
+          title: "Already Punched Out",
+          description: "You have already punched out today.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Check if trying to punch out without punching in
+      if (status === "Punched Out" && !hasPunchedInToday) {
+        toast({
+          title: "Punch In Required",
+          description: "You need to punch in before punching out.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Check if punch-in is late (after 9:30 AM)
+      let isLate = false;
+      if (status === "Punched In") {
+        const lateThreshold = new Date();
+        lateThreshold.setHours(9, 30, 0, 0);
+        isLate = now > lateThreshold;
+      }
+
+      // Add the punch record
+      await addDoc(collection(db, "attendance"), {
         userId,
-        timestamp: Timestamp.fromDate(currentTime),
-        status: newStatus,
+        timestamp: Timestamp.fromDate(now),
         location: {
           latitude: location.latitude,
           longitude: location.longitude,
         },
+        status,
         isLate,
         regularized: false,
-      };
-
-      // Add log to Firestore
-      const docRef = await addDoc(collection(db, "attendance"), logData);
-
-      // Update local state
-      setPunchLog([{ id: docRef.id, ...logData }, ...punchLog]);
-      setIsPunchedIn(!isPunchedIn);
+        serverTime: serverTimestamp(),
+      });
 
       toast({
-        title: `${newStatus} successfully`,
-        description: isLate ? "You've been marked as late" : "",
-        status: isLate ? "warning" : "success",
-        duration: 3000,
+        title: `${status} Successfully`,
+        description: `You have ${status.toLowerCase()} at ${now.toLocaleTimeString()}`,
+        status: "success",
+        duration: 5000,
         isClosable: true,
       });
+
+      // Update punch status in state
+      if (status === "Punched In") {
+        setHasPunchedInToday(true);
+        setPunchInTime(now);
+      } else {
+        setHasPunchedOutToday(true);
+        setPunchOutTime(now);
+      }
+
+      setIsPunchedIn(status === "Punched In");
     } catch (error) {
-      console.error("Error recording attendance:", error);
+      console.error("Error punching in/out:", error);
       toast({
         title: "Error",
-        description: "Failed to record attendance",
+        description: "Failed to record attendance. Please try again.",
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegularize = async () => {
+  // Handle regularization submission
+  const handleRegularizationSubmit = async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to regularize attendance.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!regularizationData.reason) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for regularization.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!regularizationData.inTime && !regularizationData.outTime) {
+      toast({
+        title: "Time Required",
+        description: "Please provide at least one punch time.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
-      const { date, reason, inTime, outTime } = regularizationData;
+      setLoading(true);
 
-      // Create regularization records for both punch in and out
-      if (inTime) {
-        const inDateTime = new Date(date);
-        const [inHours, inMinutes] = inTime.split(":").map(Number);
-        inDateTime.setHours(inHours, inMinutes, 0, 0);
-
-        await addDoc(collection(db, "attendance"), {
-          userId,
-          timestamp: Timestamp.fromDate(inDateTime),
-          status: "Punched In",
-          regularized: true,
-          reason,
-          location: { latitude: null, longitude: null },
-        });
-      }
-
-      if (outTime) {
-        const outDateTime = new Date(date);
-        const [outHours, outMinutes] = outTime.split(":").map(Number);
-        outDateTime.setHours(outHours, outMinutes, 0, 0);
-
-        await addDoc(collection(db, "attendance"), {
-          userId,
-          timestamp: Timestamp.fromDate(outDateTime),
-          status: "Punched Out",
-          regularized: true,
-          reason,
-          location: { latitude: null, longitude: null },
-        });
-      }
+      // Add the regularization request
+      await addDoc(collection(db, "regularization"), {
+        userId,
+        date: Timestamp.fromDate(regularizationData.date),
+        reason: regularizationData.reason,
+        inTime: regularizationData.inTime,
+        outTime: regularizationData.outTime,
+        status: "Pending",
+        createdAt: serverTimestamp(),
+      });
 
       toast({
-        title: "Attendance Regularized",
-        description: "Your attendance has been successfully regularized",
+        title: "Regularization Requested",
+        description:
+          "Your attendance regularization request has been submitted and is pending approval.",
         status: "success",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
 
-      // Refresh logs
-      if (userId) {
-        fetchUserLogs(userId);
-      }
+      // Reset form and close modal
+      setRegularizationData({
+        date: new Date(),
+        reason: "",
+        inTime: "",
+        outTime: "",
+      });
       onRegularizeClose();
     } catch (error) {
-      console.error("Error regularizing attendance:", error);
+      console.error("Error submitting regularization:", error);
       toast({
         title: "Error",
-        description: "Failed to regularize attendance",
+        description:
+          "Failed to submit regularization request. Please try again.",
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDayClick = async (date: Date) => {
+  // Handle day click on calendar
+  const handleDayClick = (date: Date) => {
     setSelectedDate(date);
 
-    try {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
+    // Update month and year if they change
+    setCurrentMonth(date.getMonth());
+    setCurrentYear(date.getFullYear());
 
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+    // Get logs for the selected date
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
 
-      const attendanceRef = collection(db, "attendance");
-      const q = query(
-        attendanceRef,
-        where("userId", "==", userId),
-        where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
-        where("timestamp", "<=", Timestamp.fromDate(endOfDay))
-      );
+    const filteredLogs = punchLog.filter((log) => {
+      const logDate = new Date(log.timestamp.seconds * 1000);
+      return logDate >= dayStart && logDate <= dayEnd;
+    });
 
-      const querySnapshot = await getDocs(q);
-      const logs: Log[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        logs.push({
-          id: doc.id,
-          timestamp: data.timestamp,
-          status: data.status,
-          regularized: data.regularized,
-        });
-      });
-
-      setDayLogs(
-        logs.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds)
-      );
-      onDayDetailsOpen();
-    } catch (error) {
-      console.error("Error fetching day logs:", error);
-    }
+    setDayLogs(filteredLogs);
+    onDayDetailsOpen();
   };
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
+  // Format time for display
+  const formatTime = (timestamp: { seconds: number; nanoseconds: number }) => {
+    const date = new Date(timestamp.seconds * 1000);
   };
 
-  const handleNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
+  // Format date for display
+  const formatDate = (timestamp: { seconds: number; nanoseconds: number }) => {
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString();
+  };
+  // Check if it's within office hours (9:00 AM to 6:00 PM)
+  const isWithinOfficeHours = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    return hours >= 9 && hours < 18;
   };
 
-  if (loading) {
-    return (
-      <Box pt={{ base: "130px", md: "80px", xl: "80px" }} textAlign="center">
-        <Text>Loading...</Text>
-      </Box>
-    );
-  }
+  // Check if it's a weekend
+  const isWeekend = () => {
+    const now = new Date();
+    const day = now.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  };
 
+  // Get punch button status and color
+  const getPunchButtonStatus = () => {
+    // If already punched in and out, disable both buttons
+    if (hasPunchedInToday && hasPunchedOutToday) {
+      return {
+        disabled: true,
+        colorScheme: "gray",
+        text: "Attendance Completed for Today",
+      };
+    }
+
+    // If weekend
+    if (isWeekend()) {
+      return {
+        disabled: true,
+        colorScheme: "gray",
+        text: "Weekend - No Attendance Required",
+      };
+    }
+
+    // If not within office hours
+    if (!isWithinOfficeHours()) {
+      return {
+        disabled: false,
+        colorScheme: isPunchedIn ? "red" : "blue",
+        text: isPunchedIn
+          ? "Punch Out (After Hours)"
+          : "Punch In (After Hours)",
+      };
+    }
+
+    // Normal case
+    return {
+      disabled: false,
+      colorScheme: isPunchedIn ? "red" : "green",
+      text: isPunchedIn ? "Punch Out" : "Punch In",
+    };
+  };
+
+  const buttonStatus = getPunchButtonStatus();
+
+  // Calculate monthly attendance rate
+  const attendanceRate =
+    attendanceStats.present > 0
+      ? (
+          (attendanceStats.present /
+            (attendanceStats.present + attendanceStats.absent)) *
+          100
+        ).toFixed(1)
+      : "0.0";
+  // Handle month change in calendar
+  const handleMonthChange = (increment: number) => {
+    const newDate = new Date(currentYear, currentMonth + increment);
+    setCurrentMonth(newDate.getMonth());
+    setCurrentYear(newDate.getFullYear());
+  };
   return (
-    <Box
-      pt={{ base: "130px", md: "80px", xl: "80px" }}
-      bg="gray.100"
-      minH="100vh"
-      textAlign="center"
-    >
-      <VStack spacing={4}>
-        <Button
-          onClick={handlePunch}
-          colorScheme={isPunchedIn ? "red" : "green"}
-        >
-          {isPunchedIn ? "Punch Out" : "Punch In"}
-        </Button>
-
-        <Button onClick={onRegularizeOpen} colorScheme="blue">
-          Regularize Attendance
-        </Button>
-
-        <Box>
-          <Button onClick={handlePrevMonth} mr={2}>
-            Previous
-          </Button>
-          <Button onClick={handleNextMonth}>Next</Button>
+    <Box mt={20} p={4} maxW="1200px" mx="auto">
+      <VStack spacing={6} align="stretch">
+        {/* Current Time Display */}
+        <Box textAlign="center" py={4}>
+          <Text fontSize="4xl" fontWeight="bold">
+            {currentTime.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </Text>
+          <Text fontSize="md" color="gray.500">
+            {currentTime.toLocaleDateString([], {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </Text>
         </Box>
 
+        {/* Today's Status */}
+        <Box bg="white" p={4} borderRadius="md" shadow="md">
+          <Heading size="md" mb={4}>
+            Today's Status
+          </Heading>
+          <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
+            <GridItem>
+              <Stat>
+                <StatLabel>Status</StatLabel>
+                <StatNumber>
+                  {hasPunchedInToday && hasPunchedOutToday ? (
+                    <Badge colorScheme="blue" fontSize="md" p={1}>
+                      Completed
+                    </Badge>
+                  ) : isPunchedIn ? (
+                    <Badge colorScheme="green" fontSize="md" p={1}>
+                      Punched In
+                    </Badge>
+                  ) : (
+                    <Badge colorScheme="yellow" fontSize="md" p={1}>
+                      Not Punched In
+                    </Badge>
+                  )}
+                </StatNumber>
+              </Stat>
+            </GridItem>
+            {punchInTime && (
+              <GridItem>
+                <Stat>
+                  <StatLabel>Punch-In Time</StatLabel>
+                  <StatNumber>
+                    {punchInTime.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {punchInTime.getHours() >= 9 &&
+                      punchInTime.getMinutes() > 30 && (
+                        <Badge colorScheme="red" ml={2}>
+                          Late
+                        </Badge>
+                      )}
+                  </StatNumber>
+                </Stat>
+              </GridItem>
+            )}
+            {punchOutTime && (
+              <GridItem>
+                <Stat>
+                  <StatLabel>Punch-Out Time</StatLabel>
+                  <StatNumber>
+                    {punchOutTime.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </StatNumber>
+                </Stat>
+              </GridItem>
+            )}
+            <GridItem>
+              <Stat>
+                <StatLabel>Working Hours</StatLabel>
+                <StatNumber>{workingHours || "Not Available"}</StatNumber>
+              </Stat>
+            </GridItem>
+          </Grid>
+          <Button
+            colorScheme={buttonStatus.colorScheme}
+            onClick={handlePunch}
+            isLoading={loading}
+            disabled={buttonStatus.disabled}
+            mt={4}
+            size="lg"
+            width="100%"
+          >
+            {buttonStatus.text}
+          </Button>
+        </Box>
+
+        {/* Monthly Stats */}
+        <Box bg="white" p={4} borderRadius="md" shadow="md">
+          <Heading size="md" mb={4}>
+            Monthly Stats
+          </Heading>
+          <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={4}>
+            <GridItem>
+              <Stat>
+                <StatLabel>Present</StatLabel>
+                <StatNumber>{attendanceStats.present}</StatNumber>
+              </Stat>
+            </GridItem>
+            <GridItem>
+              <Stat>
+                <StatLabel>Absent</StatLabel>
+                <StatNumber>{attendanceStats.absent}</StatNumber>
+              </Stat>
+            </GridItem>
+            <GridItem>
+              <Stat>
+                <StatLabel>Late</StatLabel>
+                <StatNumber>{attendanceStats.late}</StatNumber>
+              </Stat>
+            </GridItem>
+            <GridItem>
+              <Stat>
+                <StatLabel>Regularized</StatLabel>
+                <StatNumber>{attendanceStats.regularized}</StatNumber>
+              </Stat>
+            </GridItem>
+          </Grid>
+          <Alert status="info" mt={4}>
+            <AlertIcon />
+            Your monthly attendance rate is <strong>{attendanceRate}%</strong>
+          </Alert>
+        </Box>
+
+        {/* Calendar */}
         <Calendar
           logs={punchLog}
           month={currentMonth}
           year={currentYear}
           onDayClick={handleDayClick}
+          onMonthChange={handleMonthChange}
         />
+
+        {/* Regularization Request */}
+        <Button colorScheme="blue" onClick={onRegularizeOpen} width="100%">
+          Request Attendance Regularization
+        </Button>
       </VStack>
 
+      {/* Regularization Modal */}
+      {/* Regularization Modal */}
       <Modal isOpen={isRegularizeOpen} onClose={onRegularizeClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Regularize Attendance</ModalHeader>
+          <ModalHeader>Request Attendance Regularization</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <FormControl>
-              <FormLabel>Date</FormLabel>
+            <Alert status="info" mb={4}>
+              <AlertIcon />
+              <Box>
+                <Text fontWeight="bold">Note:</Text>
+                <Text>
+                  This request will be sent to administrators for approval.
+                  Please provide accurate information.
+                </Text>
+              </Box>
+            </Alert>
+            <FormControl mt={4}>
+              <FormLabel>Date for Regularization</FormLabel>
               <Input
-                type="date"
                 value={regularizationData.date.toISOString().split("T")[0]}
                 onChange={(e) =>
                   setRegularizationData({
@@ -574,8 +957,9 @@ export default function Attendance() {
               />
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel>Reason</FormLabel>
+              <FormLabel>Reason for Regularization</FormLabel>
               <Input
+                placeholder="Enter reason"
                 value={regularizationData.reason}
                 onChange={(e) =>
                   setRegularizationData({
@@ -586,7 +970,15 @@ export default function Attendance() {
               />
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel>Punch In Time</FormLabel>
+              <FormLabel>
+                Punch-In Time{" "}
+                <Tooltip
+                  label="Time when you should have punched in"
+                  fontSize="sm"
+                >
+                  <InfoIcon />
+                </Tooltip>
+              </FormLabel>
               <Input
                 type="time"
                 value={regularizationData.inTime}
@@ -599,7 +991,15 @@ export default function Attendance() {
               />
             </FormControl>
             <FormControl mt={4}>
-              <FormLabel>Punch Out Time</FormLabel>
+              <FormLabel>
+                Punch-Out Time{" "}
+                <Tooltip
+                  label="Time when you should have punched out"
+                  fontSize="sm"
+                >
+                  <InfoIcon />
+                </Tooltip>
+              </FormLabel>
               <Input
                 type="time"
                 value={regularizationData.outTime}
@@ -613,49 +1013,121 @@ export default function Attendance() {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleRegularize}>
-              Submit
+            <Button
+              colorScheme="blue"
+              mr={3}
+              onClick={handleRegularizationSubmit}
+              isLoading={loading}
+            >
+              Submit Request
             </Button>
-            <Button onClick={onRegularizeClose}>Cancel</Button>
+            <Button variant="ghost" onClick={onRegularizeClose}>
+              Cancel
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isDayDetailsOpen} onClose={onDayDetailsClose}>
+      {/* Day Details Modal */}
+      <Modal isOpen={isDayDetailsOpen} onClose={onDayDetailsClose} size="lg">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Attendance Details</ModalHeader>
+          <ModalHeader>
+            Attendance Details for{" "}
+            {selectedDate.toLocaleDateString([], {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {dayLogs.length === 0 ? (
-              <Text>No logs for this day</Text>
+              <Alert status="info">
+                <AlertIcon />
+                No attendance records found for this date.
+              </Alert>
             ) : (
-              <Table variant="simple">
+              <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
                     <Th>Time</Th>
                     <Th>Status</Th>
-                    <Th>Regularized</Th>
+                    <Th>Details</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {dayLogs.map((log) => (
-                    <Tr key={log.id}>
-                      <Td>
-                        {new Date(
-                          log.timestamp.seconds * 1000
-                        ).toLocaleTimeString()}
-                      </Td>
-                      <Td>{log.status}</Td>
-                      <Td>{log.regularized ? "Yes" : "No"}</Td>
-                    </Tr>
-                  ))}
+                  {dayLogs
+                    .sort((a, b) => a.timestamp.seconds - b.timestamp.seconds)
+                    .map((log) => (
+                      <Tr key={log.id}>
+                        <Td>
+                          {new Date(
+                            log.timestamp.seconds * 1000
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Td>
+                        <Td>
+                          <Badge
+                            colorScheme={
+                              log.status === "Punched In"
+                                ? "green"
+                                : log.status === "Punched Out"
+                                ? "red"
+                                : "blue"
+                            }
+                          >
+                            {log.status}
+                          </Badge>
+                        </Td>
+                        <Td>
+                          {log.isLate && (
+                            <Badge colorScheme="yellow" mr={2}>
+                              Late
+                            </Badge>
+                          )}
+                          {log.regularized && (
+                            <Badge colorScheme="purple" mr={2}>
+                              Regularized
+                            </Badge>
+                          )}
+                          {log.reason && (
+                            <Tooltip label={log.reason}>
+                              <InfoIcon color="blue.500" />
+                            </Tooltip>
+                          )}
+                        </Td>
+                      </Tr>
+                    ))}
                 </Tbody>
               </Table>
             )}
+
+            {/* Regularization request for this day */}
+            {dayLogs.length === 0 && (
+              <Button
+                colorScheme="blue"
+                mt={4}
+                onClick={() => {
+                  setRegularizationData({
+                    ...regularizationData,
+                    date: selectedDate,
+                  });
+                  onDayDetailsClose();
+                  onRegularizeOpen();
+                }}
+              >
+                Request Regularization for This Day
+              </Button>
+            )}
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onDayDetailsClose}>Close</Button>
+            <Button variant="ghost" onClick={onDayDetailsClose}>
+              Close
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

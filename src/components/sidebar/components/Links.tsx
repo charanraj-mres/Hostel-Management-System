@@ -7,8 +7,15 @@ import { IRoute } from "types/navigation";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { auth, db } from "config/firebase";
-import { doc, getDoc } from "firebase/firestore";
-
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { AuthProvider } from "context/AuthContext";
 interface SidebarLinksProps {
   routes: IRoute[];
 }
@@ -17,7 +24,8 @@ export function SidebarLinks(props: SidebarLinksProps) {
   const { routes } = props;
   const [userType, setUserType] = useState<string>("");
   const [filteredRoutes, setFilteredRoutes] = useState<IRoute[]>([]);
-
+  const user = AuthProvider;
+  console.log(user.name);
   // Chakra color mode
   const pathname = usePathname();
 
@@ -35,8 +43,26 @@ export function SidebarLinks(props: SidebarLinksProps) {
     const getUserType = async () => {
       try {
         const currentUser = auth.currentUser;
+
         if (currentUser) {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          // First try direct lookup by UID
+          const userDocRef = doc(db, "users", currentUser.uid);
+          let userDoc = await getDoc(userDocRef);
+
+          // If not found, query by email
+          if (!userDoc.exists()) {
+            const q = query(
+              collection(db, "users"),
+              where("email", "==", currentUser.email),
+              where("status", "==", "active")
+            );
+
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              userDoc = querySnapshot.docs[0];
+            }
+          }
+
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUserType(userData.userType || "");
@@ -49,6 +75,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
 
     getUserType();
   }, []);
+  console.log(filteredRoutes);
 
   // Filter routes based on user type
   useEffect(() => {
