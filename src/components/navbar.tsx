@@ -67,6 +67,10 @@ export function Navbar() {
     }
   };
 
+  const handleLogin = (userType: string) => {
+    router.push(`/auth/sign-in?userType=${userType}`);
+  };
+
   React.useEffect(() => {
     window.addEventListener(
       "resize",
@@ -130,11 +134,10 @@ export function Navbar() {
             isScrolling ? "text-gray-900" : "text-white"
           }`}
         >
-          <NavItem href="/dashboard">Dashboard</NavItem>
-          <NavItem href="/rooms">Rooms</NavItem>
-          <NavItem href="/students">Students</NavItem>
-          <NavItem href="/mess">Mess</NavItem>
-          <NavItem href="/complaints">Complaints</NavItem>
+          <NavItem href="/auth/sign-in?userType=warden">Warden Login</NavItem>
+          <NavItem href="/auth/sign-in?userType=parent">Parent Login</NavItem>
+          <NavItem href="/auth/sign-in?userType=staff">Staff Login</NavItem>
+          <NavItem href="/auth/sign-in?userType=student">Student Login</NavItem>
         </ul>
         <div className="hidden gap-2 lg:flex lg:items-center">
           {user ? (
@@ -220,11 +223,12 @@ export function Navbar() {
       <Collapse open={open}>
         <div className="container mx-auto mt-4 rounded-lg border-t border-blue-gray-50 bg-white px-6 py-5">
           <ul className="flex flex-col gap-4 text-blue-gray-900">
-            <NavItem href="/dashboard">Dashboard</NavItem>
-            <NavItem href="/rooms">Rooms</NavItem>
-            <NavItem href="/students">Students</NavItem>
-            <NavItem href="/mess">Mess</NavItem>
-            <NavItem href="/complaints">Complaints</NavItem>
+            <NavItem href="/auth/sign-in?userType=warden">Warden Login</NavItem>
+            <NavItem href="/auth/sign-in?userType=parent">Parent Login</NavItem>
+            <NavItem href="/auth/sign-in?userType=staff">Staff Login</NavItem>
+            <NavItem href="/auth/sign-in?userType=student">
+              Student Login
+            </NavItem>
           </ul>
           <div className="mt-4 flex flex-col gap-2">
             {user ? (

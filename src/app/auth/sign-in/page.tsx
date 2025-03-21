@@ -1,30 +1,10 @@
 "use client";
 /* eslint-disable */
-/*
-  _   _  ___  ____  ___ ________  _   _   _   _ ___   
- | | | |/ _ \|  _ \|_ _|__  / _ \| \ | | | | | |_ _| 
- | |_| | | | | |_) || |  / / | | |  \| | | | | || | 
- |  _  | |_| |  _ < | | / /| |_| | |\  | | |_| || |
- |_| |_|\___/|_| \_\___/____\___/|_| \_|  \___/|___|
 
-=========================================================
-* Horizon UI - v1.1.0
-=========================================================
-
-* Product Page: https://www.horizon-ui.com/
-* Copyright 2022 Horizon UI (https://www.horizon-ui.com/)
-
-* Designed and Coded by Simmmple
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { login } from "lib/auth";
+import { login, resendVerificationEmail } from "lib/auth";
 // Chakra imports
 import {
   Box,
@@ -40,6 +20,12 @@ import {
   InputRightElement,
   Text,
   useColorModeValue,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  CloseButton,
+  Badge,
 } from "@chakra-ui/react";
 // Custom components
 import { HSeparator } from "components/separator/Separator";
@@ -71,23 +57,87 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationNeeded, setVerificationNeeded] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertStatus, setAlertStatus] = useState<
+    "error" | "success" | "info" | "warning"
+  >("error");
+  const [showAlert, setShowAlert] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const userTypeParam = searchParams?.get("userType");
+    if (userTypeParam) {
+      setUserType(userTypeParam);
+    }
+  }, [searchParams]);
 
   const handleClick = () => setShow(!show);
+
+  const getUserTypeDisplay = () => {
+    switch (userType) {
+      case "warden":
+        return "Warden";
+      case "parent":
+        return "Parent";
+      case "staff":
+        return "Staff";
+      case "student":
+        return "Student";
+      default:
+        return "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setShowAlert(false);
 
     const result = await login(email, password);
 
     if (result.error) {
-      toast.error(result.error);
+      if (result.needsVerification) {
+        setVerificationNeeded(true);
+        setAlertStatus("warning");
+        setAlertMessage(
+          "Please verify your email before logging in. Check your inbox for the verification link."
+        );
+        setShowAlert(true);
+      } else {
+        toast.error(result.error);
+        setAlertStatus("error");
+        setAlertMessage(result.error);
+        setShowAlert(true);
+      }
     } else {
       toast.success("Logged in successfully!");
       router.push("/admin/default");
     }
     setIsLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    setResendingEmail(true);
+    const result = await resendVerificationEmail();
+    if (result.success) {
+      toast.success("Verification email sent successfully!");
+      setAlertStatus("success");
+      setAlertMessage(
+        "Verification email sent! Please check your inbox and spam folder."
+      );
+      setShowAlert(true);
+    } else {
+      toast.error(result.error || "Failed to send verification email");
+      setAlertStatus("error");
+      setAlertMessage(result.error || "Failed to send verification email");
+      setShowAlert(true);
+    }
+    setResendingEmail(false);
   };
 
   return (
@@ -106,9 +156,16 @@ export default function SignIn() {
         flexDirection="column"
       >
         <Box me="auto">
-          <Heading color={textColor} fontSize="36px" mb="10px">
-            Sign In
-          </Heading>
+          <Flex alignItems="center" mb="10px">
+            <Heading color={textColor} fontSize="36px">
+              Sign In
+            </Heading>
+            {userType && (
+              <Badge colorScheme="blue" ml={3} fontSize="md" p={2}>
+                {getUserTypeDisplay()}
+              </Badge>
+            )}
+          </Flex>
           <Text
             mb="36px"
             ms="4px"
@@ -116,9 +173,48 @@ export default function SignIn() {
             fontWeight="400"
             fontSize="md"
           >
-            Enter your email and password to sign in!
+            {userType
+              ? `Enter your email and password to sign in as ${getUserTypeDisplay()}!`
+              : "Enter your email and password to sign in!"}
           </Text>
         </Box>
+
+        {showAlert && (
+          <Alert status={alertStatus} mb="4" borderRadius="md">
+            <AlertIcon />
+            <Box flex="1">
+              <AlertTitle>
+                {alertStatus === "error"
+                  ? "Error"
+                  : alertStatus === "warning"
+                  ? "Warning"
+                  : "Success"}
+              </AlertTitle>
+              <AlertDescription display="block">
+                {alertMessage}
+                {verificationNeeded && (
+                  <Button
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    isLoading={resendingEmail}
+                    ml="2"
+                    mt="1"
+                  >
+                    Resend verification email
+                  </Button>
+                )}
+              </AlertDescription>
+            </Box>
+            <CloseButton
+              position="absolute"
+              right="8px"
+              top="8px"
+              onClick={() => setShowAlert(false)}
+            />
+          </Alert>
+        )}
+
         <Flex
           as="form"
           onSubmit={handleSubmit}
@@ -156,6 +252,7 @@ export default function SignIn() {
                 <Icon
                   as={show ? RiEyeCloseLine : MdOutlineRemoveRedEye}
                   onClick={handleClick}
+                  cursor="pointer"
                 />
               </InputRightElement>
             </InputGroup>
@@ -197,7 +294,7 @@ export default function SignIn() {
               h="50"
               mb="24px"
             >
-              Sign In
+              {userType ? `Sign In as ${getUserTypeDisplay()}` : "Sign In"}
             </Button>
           </FormControl>
           <Flex

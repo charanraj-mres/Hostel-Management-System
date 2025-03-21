@@ -15,30 +15,20 @@ import {
   Text,
   useColorMode,
   useColorModeValue,
+  Badge,
 } from "@chakra-ui/react";
 // Custom Components
 import { ItemContent } from "components/menu/ItemContent";
 import { SearchBar } from "components/navbar/searchBar/SearchBar";
 import { SidebarResponsive } from "components/sidebar/Sidebar";
 // Assets
-import navImage from "/public/img/layout/Navbar.png";
 import { FaEthereum } from "react-icons/fa";
 import { IoMdMoon, IoMdSunny } from "react-icons/io";
-import { MdInfoOutline, MdNotificationsNone } from "react-icons/md";
+import { MdInfoOutline, MdNotificationsNone, MdVerified } from "react-icons/md";
 import routes from "routes";
-// Firebase Imports
-import { auth, db } from "config/firebase";
-import { signOut } from "firebase/auth";
-import { useEffect, useState } from "react";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-import { logout } from "lib/auth"; // Update with the correct path
+// Auth Imports
+import { useAuth } from "context/AuthContext";
+import { logout } from "lib/auth";
 
 export default function HeaderLinks(props: {
   secondary: boolean;
@@ -47,8 +37,7 @@ export default function HeaderLinks(props: {
 }) {
   const { secondary } = props;
   const { colorMode, toggleColorMode } = useColorMode();
-  const [userName, setUserName] = useState<string>("User");
-  const [userInitials, setUserInitials] = useState<string>("U");
+  const { user, userData, userType, isEmailVerified } = useAuth();
 
   // Chakra Color Mode
   const navbarIcon = useColorModeValue("gray.400", "white");
@@ -65,50 +54,31 @@ export default function HeaderLinks(props: {
   );
   const borderButton = useColorModeValue("secondaryGray.500", "whiteAlpha.200");
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const currentUser = auth.currentUser;
+  const filteredRoutes = routes.filter((route) => {
+    // If the route has no userType restriction
+    if (!route.userType) {
+      return true; // Show to all users
+    }
 
-        if (currentUser) {
-          // For parents and staff, we need to query by email since their auth UID doesn't match the document ID
-          const q = query(
-            collection(db, "users"),
-            where("email", "==", currentUser.email),
-            where("status", "==", "active")
-          );
+    // If userType is an array (multiple types allowed)
+    if (userType && Array.isArray(route.userType)) {
+      return route.userType.includes(userType);
+    }
 
-          const querySnapshot = await getDocs(q);
+    // If userType is a string (single type)
+    if (userType && typeof route.userType === "string") {
+      return route.userType === userType;
+    }
 
-          if (!querySnapshot.empty) {
-            const userData = querySnapshot.docs[0].data();
-            setUserName(userData.name || "User");
-            // Set initials from name
-            const initials = userData.name
-              ? userData.name
-                  .split(" ")
-                  .map((n: any[]) => n[0])
-                  .join("")
-                  .toUpperCase()
-              : "U";
-            setUserInitials(initials);
-          } else {
-            console.log("No matching user document found");
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
+    return false;
+  });
 
-    fetchUserData();
-  }, []);
   const handleLogout = async () => {
     try {
       const result = await logout();
       if (result.success) {
-        // Redirect to login page or home page after logout
-        window.location.href = "/auth/sign-in"; // Update with your login route
+        // Redirect to login page after logout
+        window.location.href = "/auth/sign-in";
       } else {
         console.error("Logout failed");
       }
@@ -116,6 +86,14 @@ export default function HeaderLinks(props: {
       console.error("Error during logout:", error);
     }
   };
+
+  const userInitials = userData?.name
+    ? userData.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
 
   return (
     <Flex
@@ -138,41 +116,30 @@ export default function HeaderLinks(props: {
         me="10px"
         borderRadius="30px"
       />
-      <Flex
-        bg={ethBg}
-        display={secondary ? "flex" : "none"}
-        borderRadius="30px"
-        ms="auto"
-        p="6px"
-        align="center"
-        me="6px"
-      >
+
+      {userType === "warden" && (
         <Flex
-          align="center"
-          justify="center"
-          bg={ethBox}
-          h="29px"
-          w="29px"
+          bg={ethBg}
+          display={secondary ? "flex" : "none"}
           borderRadius="30px"
-          me="7px"
-        >
-          <Icon color={ethColor} w="9px" h="14px" as={FaEthereum} />
-        </Flex>
-        <Text
-          w="max-content"
-          color={ethColor}
-          fontSize="sm"
-          fontWeight="700"
+          ms="auto"
+          p="6px"
+          align="center"
           me="6px"
         >
-          1,924
-          <Text as="span" display={{ base: "none", md: "unset" }}>
-            {" "}
-            ETH
+          <Text
+            w="max-content"
+            color={ethColor}
+            fontSize="sm"
+            fontWeight="700"
+            me="6px"
+          >
+            Admin Dashboard
           </Text>
-        </Text>
-      </Flex>
-      <SidebarResponsive routes={routes} />
+        </Flex>
+      )}
+
+      <SidebarResponsive routes={filteredRoutes} />
 
       <Button
         variant="no-hover"
@@ -192,6 +159,7 @@ export default function HeaderLinks(props: {
           as={colorMode === "light" ? IoMdMoon : IoMdSunny}
         />
       </Button>
+
       <Menu>
         <MenuButton p="0px" style={{ position: "relative" }}>
           <Box
@@ -207,6 +175,17 @@ export default function HeaderLinks(props: {
               {userInitials}
             </Text>
           </Center>
+          {!isEmailVerified && user && (
+            <Badge
+              position="absolute"
+              top="-5px"
+              right="-5px"
+              colorScheme="red"
+              borderRadius="full"
+            >
+              !
+            </Badge>
+          )}
         </MenuButton>
         <MenuList
           boxShadow={shadow}
@@ -228,10 +207,25 @@ export default function HeaderLinks(props: {
               fontWeight="700"
               color={textColor}
             >
-              👋&nbsp; Hey, {userName}
+              👋&nbsp; Hey, {userData?.name || "User"}
             </Text>
           </Flex>
           <Flex flexDirection="column" p="10px">
+            {!isEmailVerified && user && (
+              <MenuItem
+                _hover={{ bg: "none" }}
+                _focus={{ bg: "none" }}
+                borderRadius="8px"
+                px="14px"
+                color="orange.500"
+              >
+                <Flex align="center">
+                  <Icon as={MdInfoOutline} mr="5px" />
+                  <Text fontSize="sm">Verify Email</Text>
+                </Flex>
+              </MenuItem>
+            )}
+
             <MenuItem
               _hover={{ bg: "none" }}
               _focus={{ bg: "none" }}

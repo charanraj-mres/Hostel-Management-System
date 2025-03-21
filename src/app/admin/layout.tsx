@@ -11,6 +11,8 @@ import Footer from "components/footer/FooterAdmin";
 import Navbar from "components/navbar/NavbarAdmin";
 import Sidebar from "components/sidebar/Sidebar";
 import { SidebarContext } from "contexts/SidebarContext";
+import { AuthProvider } from "context/AuthContext";
+import AppRoutes from "components/AppRoutes";
 import { PropsWithChildren, useEffect, useState } from "react";
 import routes from "routes";
 import {

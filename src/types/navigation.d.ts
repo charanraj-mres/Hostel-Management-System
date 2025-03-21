@@ -1,10 +1,10 @@
 import { ReactComponentElement } from "react";
 
 export interface IRoute {
-  name: string;
-  layout: string;
-  icon: ReactComponentElement | string;
-  secondary?: boolean;
   path: string;
-  userType?: string;
+  name: string;
+  icon?: JSX.Element;
+  component: React.ComponentType;
+  layout: string;
+  userType?: string | string[];
 }

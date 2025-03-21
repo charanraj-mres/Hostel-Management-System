@@ -89,7 +89,13 @@ export function SidebarLinks(props: SidebarLinksProps) {
       if (!route.userType) return true;
 
       // Check if user type is in the comma-separated list
-      const allowedTypes = route.userType.split(",").map((type) => type.trim());
+      const allowedTypes = (
+        typeof route.userType === "string"
+          ? route.userType
+          : route.userType.join(",")
+      )
+        .split(",")
+        .map((type: string) => type.trim());
       return allowedTypes.includes(userType);
     });
 

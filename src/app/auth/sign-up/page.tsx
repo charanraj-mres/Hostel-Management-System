@@ -16,7 +16,13 @@ import {
   InputRightElement,
   Text,
   useColorModeValue,
-  Checkbox,
+  RadioGroup,
+  Radio,
+  Stack,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from "@chakra-ui/react";
 import DefaultAuthLayout from "layouts/auth/Default";
 import Link from "next/link";
@@ -32,9 +38,12 @@ export default function SignUp() {
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [Gender, setGender] = useState("");
+  const [gender, setGender] = useState("male");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
   const router = useRouter();
 
   const handleClick = () => setShow(!show);
@@ -43,13 +52,23 @@ export default function SignUp() {
     e.preventDefault();
     setIsLoading(true);
 
-    const result = await signup(name, email, Gender, password);
+    const result = await signup(name, email, gender, password);
 
     if (result.error) {
       toast.error(result.error);
+      setShowAlert(true);
+      setAlertMessage(result.error);
     } else {
-      toast.success("Account created successfully!");
-      router.push("/auth/sign-in"); // Redirect to login
+      toast.success(
+        "Account created successfully! Please verify your email before logging in."
+      );
+      setShowAlert(true);
+      setAlertMessage(
+        "Account created successfully! Please check your email for verification link."
+      );
+      setTimeout(() => {
+        router.push("/auth/sign-in");
+      }, 5000);
     }
     setIsLoading(false);
   };
@@ -77,6 +96,23 @@ export default function SignUp() {
             Create your account by entering email and password!
           </Text>
         </Box>
+
+        {showAlert && (
+          <Alert
+            status={alertMessage.includes("successfully") ? "success" : "error"}
+            mb="4"
+            borderRadius="md"
+          >
+            <AlertIcon />
+            <Box flex="1">
+              <AlertTitle>
+                {alertMessage.includes("successfully") ? "Success" : "Error"}
+              </AlertTitle>
+              <AlertDescription>{alertMessage}</AlertDescription>
+            </Box>
+          </Alert>
+        )}
+
         <form
           onSubmit={handleSubmit}
           style={{
@@ -93,13 +129,14 @@ export default function SignUp() {
           <FormControl>
             <FormLabel>Name</FormLabel>
             <Input
-              type="name"
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="John Doee"
+              placeholder="John Doe"
               required
             />
           </FormControl>
+
           <FormControl mt={4}>
             <FormLabel>Email</FormLabel>
             <Input
@@ -110,21 +147,18 @@ export default function SignUp() {
               required
             />
           </FormControl>
+
           <FormControl mt={4}>
             <FormLabel>Gender</FormLabel>
-            <Checkbox value="male" onChange={(e) => setGender(e.target.value)}>
-              Male
-            </Checkbox>
-            <Checkbox
-              value="female"
-              onChange={(e) => setGender(e.target.value)}
-            >
-              Female
-            </Checkbox>
-            <Checkbox value="other" onChange={(e) => setGender(e.target.value)}>
-              Other
-            </Checkbox>
+            <RadioGroup value={gender} onChange={setGender}>
+              <Stack direction="row">
+                <Radio value="male">Male</Radio>
+                <Radio value="female">Female</Radio>
+                <Radio value="other">Other</Radio>
+              </Stack>
+            </RadioGroup>
           </FormControl>
+
           <FormControl mt={4}>
             <FormLabel>Password</FormLabel>
             <InputGroup>
@@ -134,27 +168,18 @@ export default function SignUp() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min. 8 characters"
                 required
+                minLength={8}
               />
               <InputRightElement>
                 <Icon
                   as={show ? RiEyeCloseLine : MdOutlineRemoveRedEye}
                   onClick={handleClick}
+                  cursor="pointer"
                 />
               </InputRightElement>
             </InputGroup>
           </FormControl>
-          <Flex justifyContent="space-between" align="center" mb="24px">
-            <Link href="/auth/forgot-password">
-              <Text
-                color={textColorBrand}
-                fontSize="sm"
-                w="124px"
-                fontWeight="500"
-              >
-                Forgot password?
-              </Text>
-            </Link>
-          </Flex>
+
           <Button
             type="submit"
             isLoading={isLoading}
@@ -164,9 +189,11 @@ export default function SignUp() {
             w="100%"
             h="50"
             mb="24px"
+            mt="24px"
           >
             Sign Up
           </Button>
+
           <Flex
             flexDirection="column"
             justifyContent="center"
