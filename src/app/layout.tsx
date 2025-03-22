@@ -4,6 +4,8 @@ import { Roboto } from "next/font/google";
 import { Layout } from "components";
 import { Providers } from "./providers";
 import AppWrappers from "./AppWrappers";
+import { AuthProvider } from "context/AuthContext";
+import AppRoutes from "components/AppRoutes";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -37,7 +39,11 @@ export default function RootLayout({
       <body className={roboto.className}>
         <Layout>
           <AppWrappers>
-            <Providers>{children}</Providers>
+            <Providers>
+              <AuthProvider>
+                <AppRoutes>{children}</AppRoutes>
+              </AuthProvider>
+            </Providers>
             {/* <FixedPlugin /> */}
           </AppWrappers>
         </Layout>

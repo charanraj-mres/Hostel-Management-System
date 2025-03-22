@@ -97,7 +97,10 @@ function HostelCard({
         >
           {description}
         </Typography>
-        <button className="mt-4 w-full rounded-lg bg-blue-500 py-2.5 text-white hover:bg-blue-600 transition-colors">
+        <button
+          className="mt-4 w-full rounded-lg bg-blue-500 py-2.5 text-white hover:bg-blue-600 transition-colors"
+          onClick={() => (window.location.href = "/admin/admission")}
+        >
           Book Now
         </button>
       </div>
